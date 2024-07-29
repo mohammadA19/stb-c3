@@ -1000,14 +1000,14 @@ STBTT_DEF char * GetCodepointSDF(const fontinfo *info, float scale, int codepoin
 
 STBTT_DEF int FindMatchingFont(const char *fontdata, const char *name, int flags);
 // returns the offset (not index) of the font that matches, or -1 if none
-//   if you use STBTT_MACSTYLE_DONTCARE, use a font name like "Arial Bold".
+//   if you use MACSTYLE_DONTCARE, use a font name like "Arial Bold".
 //   if you use any other flag, use a font name like "Arial"; this checks
 //     the 'macStyle' header field; i don't know if fonts set this consistently
-#define STBTT_MACSTYLE_DONTCARE     0
-#define STBTT_MACSTYLE_BOLD         1
-#define STBTT_MACSTYLE_ITALIC       2
-#define STBTT_MACSTYLE_UNDERSCORE   4
-#define STBTT_MACSTYLE_NONE         8   // <= not same as 0, this makes us check the bitfield is 0
+#define MACSTYLE_DONTCARE     0
+#define MACSTYLE_BOLD         1
+#define MACSTYLE_ITALIC       2
+#define MACSTYLE_UNDERSCORE   4
+#define MACSTYLE_NONE         8   // <= not same as 0, this makes us check the bitfield is 0
 
 STBTT_DEF int CompareUTF8toUTF16_bigendian(const char *s1, int len1, const char *s2, int len2);
 // returns 1/0 whether the first string interpreted as utf8 is identical to
@@ -1022,52 +1022,52 @@ STBTT_DEF const char *GetFontNameString(const fontinfo *font, int *length, int p
 //     http://www.microsoft.com/typography/otspec/name.htm
 
 enum { // platformID
-   STBTT_PLATFORM_ID_UNICODE   =0,
-   STBTT_PLATFORM_ID_MAC       =1,
-   STBTT_PLATFORM_ID_ISO       =2,
-   STBTT_PLATFORM_ID_MICROSOFT =3
+   PLATFORM_ID_UNICODE   =0,
+   PLATFORM_ID_MAC       =1,
+   PLATFORM_ID_ISO       =2,
+   PLATFORM_ID_MICROSOFT =3
 };
 
-enum { // encodingID for STBTT_PLATFORM_ID_UNICODE
-   STBTT_UNICODE_EID_UNICODE_1_0    =0,
-   STBTT_UNICODE_EID_UNICODE_1_1    =1,
-   STBTT_UNICODE_EID_ISO_10646      =2,
-   STBTT_UNICODE_EID_UNICODE_2_0_BMP=3,
-   STBTT_UNICODE_EID_UNICODE_2_0_FULL=4
+enum { // encodingID for PLATFORM_ID_UNICODE
+   UNICODE_EID_UNICODE_1_0    =0,
+   UNICODE_EID_UNICODE_1_1    =1,
+   UNICODE_EID_ISO_10646      =2,
+   UNICODE_EID_UNICODE_2_0_BMP=3,
+   UNICODE_EID_UNICODE_2_0_FULL=4
 };
 
-enum { // encodingID for STBTT_PLATFORM_ID_MICROSOFT
-   STBTT_MS_EID_SYMBOL        =0,
-   STBTT_MS_EID_UNICODE_BMP   =1,
-   STBTT_MS_EID_SHIFTJIS      =2,
-   STBTT_MS_EID_UNICODE_FULL  =10
+enum { // encodingID for PLATFORM_ID_MICROSOFT
+   MS_EID_SYMBOL        =0,
+   MS_EID_UNICODE_BMP   =1,
+   MS_EID_SHIFTJIS      =2,
+   MS_EID_UNICODE_FULL  =10
 };
 
-enum { // encodingID for STBTT_PLATFORM_ID_MAC; same as Script Manager codes
-   STBTT_MAC_EID_ROMAN        =0,   STBTT_MAC_EID_ARABIC       =4,
-   STBTT_MAC_EID_JAPANESE     =1,   STBTT_MAC_EID_HEBREW       =5,
-   STBTT_MAC_EID_CHINESE_TRAD =2,   STBTT_MAC_EID_GREEK        =6,
-   STBTT_MAC_EID_KOREAN       =3,   STBTT_MAC_EID_RUSSIAN      =7
+enum { // encodingID for PLATFORM_ID_MAC; same as Script Manager codes
+   MAC_EID_ROMAN        =0,   MAC_EID_ARABIC       =4,
+   MAC_EID_JAPANESE     =1,   MAC_EID_HEBREW       =5,
+   MAC_EID_CHINESE_TRAD =2,   MAC_EID_GREEK        =6,
+   MAC_EID_KOREAN       =3,   MAC_EID_RUSSIAN      =7
 };
 
-enum { // languageID for STBTT_PLATFORM_ID_MICROSOFT; same as LCID...
+enum { // languageID for PLATFORM_ID_MICROSOFT; same as LCID...
        // problematic because there are e.g. 16 english LCIDs and 16 arabic LCIDs
-   STBTT_MS_LANG_ENGLISH     =0x0409,   STBTT_MS_LANG_ITALIAN     =0x0410,
-   STBTT_MS_LANG_CHINESE     =0x0804,   STBTT_MS_LANG_JAPANESE    =0x0411,
-   STBTT_MS_LANG_DUTCH       =0x0413,   STBTT_MS_LANG_KOREAN      =0x0412,
-   STBTT_MS_LANG_FRENCH      =0x040c,   STBTT_MS_LANG_RUSSIAN     =0x0419,
-   STBTT_MS_LANG_GERMAN      =0x0407,   STBTT_MS_LANG_SPANISH     =0x0409,
-   STBTT_MS_LANG_HEBREW      =0x040d,   STBTT_MS_LANG_SWEDISH     =0x041D
+   MS_LANG_ENGLISH     =0x0409,   MS_LANG_ITALIAN     =0x0410,
+   MS_LANG_CHINESE     =0x0804,   MS_LANG_JAPANESE    =0x0411,
+   MS_LANG_DUTCH       =0x0413,   MS_LANG_KOREAN      =0x0412,
+   MS_LANG_FRENCH      =0x040c,   MS_LANG_RUSSIAN     =0x0419,
+   MS_LANG_GERMAN      =0x0407,   MS_LANG_SPANISH     =0x0409,
+   MS_LANG_HEBREW      =0x040d,   MS_LANG_SWEDISH     =0x041D
 };
 
-enum { // languageID for STBTT_PLATFORM_ID_MAC
-   STBTT_MAC_LANG_ENGLISH      =0 ,   STBTT_MAC_LANG_JAPANESE     =11,
-   STBTT_MAC_LANG_ARABIC       =12,   STBTT_MAC_LANG_KOREAN       =23,
-   STBTT_MAC_LANG_DUTCH        =4 ,   STBTT_MAC_LANG_RUSSIAN      =32,
-   STBTT_MAC_LANG_FRENCH       =1 ,   STBTT_MAC_LANG_SPANISH      =6 ,
-   STBTT_MAC_LANG_GERMAN       =2 ,   STBTT_MAC_LANG_SWEDISH      =5 ,
-   STBTT_MAC_LANG_HEBREW       =10,   STBTT_MAC_LANG_CHINESE_SIMPLIFIED =33,
-   STBTT_MAC_LANG_ITALIAN      =3 ,   STBTT_MAC_LANG_CHINESE_TRAD =19
+enum { // languageID for PLATFORM_ID_MAC
+   MAC_LANG_ENGLISH      =0 ,   MAC_LANG_JAPANESE     =11,
+   MAC_LANG_ARABIC       =12,   MAC_LANG_KOREAN       =23,
+   MAC_LANG_DUTCH        =4 ,   MAC_LANG_RUSSIAN      =32,
+   MAC_LANG_FRENCH       =1 ,   MAC_LANG_SPANISH      =6 ,
+   MAC_LANG_GERMAN       =2 ,   MAC_LANG_SWEDISH      =5 ,
+   MAC_LANG_HEBREW       =10,   MAC_LANG_CHINESE_SIMPLIFIED =33,
+   MAC_LANG_ITALIAN      =3 ,   MAC_LANG_CHINESE_TRAD =19
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1444,16 +1444,16 @@ static int InitFont_internal(fontinfo *info, char *data, int fontstart)
       uint encoding_record = cmap + 4 + 8 * i;
       // find an encoding we understand:
       switch(ttUSHORT(data+encoding_record)) {
-         case STBTT_PLATFORM_ID_MICROSOFT:
+         case PLATFORM_ID_MICROSOFT:
             switch (ttUSHORT(data+encoding_record+2)) {
-               case STBTT_MS_EID_UNICODE_BMP:
-               case STBTT_MS_EID_UNICODE_FULL:
+               case MS_EID_UNICODE_BMP:
+               case MS_EID_UNICODE_FULL:
                   // MS/Unicode
                   info->index_map = cmap + ttULONG(data+encoding_record+4);
                   break;
             }
             break;
-        case STBTT_PLATFORM_ID_UNICODE:
+        case PLATFORM_ID_UNICODE:
             // Mac/iOS has these
             // all the encodingIDs are unicode, so we don't bother to check it
             info->index_map = cmap + ttULONG(data+encoding_record+4);
@@ -4903,11 +4903,6 @@ static int FindMatchingFont_internal(char *font_collection, char *name_utf8, int
    }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#endif
-
 STBTT_DEF int BakeFontBitmap(const char *data, int offset,
                                 float pixel_height, char *pixels, int pw, int ph,
                                 int first_char, int num_chars, bakedchar *chardata)
@@ -4940,9 +4935,6 @@ STBTT_DEF int CompareUTF8toUTF16_bigendian(const char *s1, int len1, const char 
    return CompareUTF8toUTF16_bigendian_internal((char *) s1, len1, (char *) s2, len2);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #endif // STB_TRUETYPE_IMPLEMENTATION
 
