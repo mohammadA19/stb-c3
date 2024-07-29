@@ -490,12 +490,12 @@ int main(int arg, char **argv)
 #endif
 
 // private structure
-typedef struct
+struct _buf
 {
    char *data;
    int cursor;
    int size;
-} _buf;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -504,11 +504,11 @@ typedef struct
 // If you use this API, you only have to call two functions ever.
 //
 
-typedef struct
+struct bakedchar
 {
    ushort x0,y0,x1,y1; // coordinates of bbox in bitmap
    float xoff,yoff,xadvance;
-} bakedchar;
+}
 
 STBTT_DEF int BakeFontBitmap(const char *data, int offset,  // font location (use offset=0 for plain .ttf)
                                 float pixel_height,                     // height of font in pixels
@@ -520,11 +520,11 @@ STBTT_DEF int BakeFontBitmap(const char *data, int offset,  // font location (us
 // if return is 0, no characters fit and no rows were used
 // This uses a very crappy packing.
 
-typedef struct
+struct aligned_quad
 {
    float x0,y0,s0,t0; // top-left
    float x1,y1,s1,t1; // bottom-right
-} aligned_quad;
+}
 
 STBTT_DEF void GetBakedQuad(const bakedchar *chardata, int pw, int ph,  // same data as above
                                int char_index,             // character to display
@@ -552,12 +552,12 @@ STBTT_DEF void GetScaledFontVMetrics(const char *fontdata, int index, float size
 // This provides options for packing multiple fonts into one atlas, not
 // perfectly but better than nothing.
 
-typedef struct
+struct packedchar
 {
    ushort x0,y0,x1,y1; // coordinates of bbox in bitmap
    float xoff,yoff,xadvance;
    float xoff2,yoff2;
-} packedchar;
+}
 
 typedef struct pack_context pack_context;
 typedef struct fontinfo fontinfo;
@@ -596,7 +596,7 @@ STBTT_DEF int  PackFontRange(pack_context *spc, const char *fontdata, int font_i
 //       ...,                  20 , ... // font max minus min y is 20 pixels tall
 //       ..., STBTT_POINT_SIZE(20), ... // 'M' is 20 pixels tall
 
-typedef struct
+struct pack_range
 {
    float font_size;
    int first_unicode_codepoint_in_range;  // if non-zero, then the chars are continuous, and this is the first codepoint
@@ -604,7 +604,7 @@ typedef struct
    int num_chars;
    packedchar *chardata_for_range; // output
    char h_oversample, v_oversample; // don't set these, they're used internally
-} pack_range;
+}
 
 STBTT_DEF int  PackFontRanges(pack_context *spc, const char *fontdata, int font_index, pack_range *ranges, int num_ranges);
 // Creates character bitmaps from multiple ranges of characters stored in
@@ -666,7 +666,7 @@ struct pack_context {
    uint   h_oversample, v_oversample;
    char *pixels;
    void  *nodes;
-};
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -708,7 +708,7 @@ struct fontinfo
    _buf subrs;                  // private charstring subroutines index
    _buf fontdicts;              // array of font dicts
    _buf fdselect;               // map from glyph to fontdict
-};
+}
 
 STBTT_DEF int InitFont(fontinfo *info, const char *data, int offset);
 // Given an offset into the file that defines a font, this function builds
@@ -781,12 +781,12 @@ STBTT_DEF int  GetGlyphKernAdvance(const fontinfo *info, int glyph1, int glyph2)
 STBTT_DEF int  GetGlyphBox(const fontinfo *info, int glyph_index, int *x0, int *y0, int *x1, int *y1);
 // as above, but takes one or more glyph indices for greater efficiency
 
-typedef struct kerningentry
+struct kerningentry
 {
    int glyph1; // use FindGlyphIndex
    int glyph2;
    int advance;
-} kerningentry;
+}
 
 STBTT_DEF int  GetKerningTableLength(const fontinfo *info);
 STBTT_DEF int  GetKerningTable(const fontinfo *info, kerningentry* table, int table_length);
@@ -812,11 +812,11 @@ STBTT_DEF int  GetKerningTable(const fontinfo *info, kerningentry* table, int ta
 #ifndef vertex // you can predefine this to use different values
                    // (we share this with other code at RAD)
    #define vertex_type short // can't use short because that's not visible in the header file
-   typedef struct
+   struct vertex
    {
       vertex_type x,y,cx,cy,cx1,cy1;
       char type,padding;
-   } vertex;
+   }
 #endif
 
 STBTT_DEF int IsGlyphEmpty(const fontinfo *info, int glyph_index);
@@ -901,11 +901,11 @@ STBTT_DEF void GetGlyphBitmapBoxSubpixel(const fontinfo *font, int glyph, float 
 
 
 // @TODO: don't expose this structure
-typedef struct
+struct _bitmap
 {
    int w,h,stride;
    char *pixels;
-} _bitmap;
+}
 
 // rasterize a shape with quadratic beziers into a bitmap
 STBTT_DEF void Rasterize(_bitmap *result,        // 1-channel bitmap to draw into
@@ -1868,7 +1868,7 @@ static int _GetGlyphShapeTT(const fontinfo *info, int glyph_index, vertex **pver
    return num_vertices;
 }
 
-typedef struct
+struct _csctx
 {
    int bounds;
    int started;
@@ -1878,7 +1878,7 @@ typedef struct
 
    vertex *pvertices;
    int num_vertices;
-} _csctx;
+}
 
 #define STBTT__CSCTX_INIT(bounds) {bounds,0, 0,0, 0,0, 0,0,0,0, NULL, 0}
 
@@ -2729,17 +2729,17 @@ STBTT_DEF void GetCodepointBitmapBox(const fontinfo *font, int codepoint, float 
 //
 //  Rasterizer
 
-typedef struct _hheap_chunk
+struct _hheap_chunk
 {
-   struct _hheap_chunk *next;
-} _hheap_chunk;
+   _hheap_chunk *next;
+}
 
-typedef struct _hheap
+struct _hheap
 {
-   struct _hheap_chunk *head;
+   _hheap_chunk *head;
    void   *first_free;
    int    num_remaining_in_head_chunk;
-} _hheap;
+}
 
 static void *_hheap_alloc(_hheap *hh, size_t size, void *userdata)
 {
@@ -2778,15 +2778,15 @@ static void _hheap_cleanup(_hheap *hh, void *userdata)
    }
 }
 
-typedef struct _edge {
+struct _edge {
    float x0,y0, x1,y1;
    int invert;
-} _edge;
+}
 
 
-typedef struct _active_edge
+struct _active_edge
 {
-   struct _active_edge *next;
+   _active_edge *next;
    #if STBTT_RASTERIZER_VERSION==1
    int x,dx;
    float ey;
@@ -2799,7 +2799,7 @@ typedef struct _active_edge
    #else
    #error "Unrecognized value of STBTT_RASTERIZER_VERSION"
    #endif
-} _active_edge;
+}
 
 #if STBTT_RASTERIZER_VERSION == 1
 #define STBTT_FIXSHIFT   10
@@ -3456,10 +3456,10 @@ static void _sort_edges(_edge *p, int n)
    _sort_edges_ins_sort(p, n);
 }
 
-typedef struct
+struct _point
 {
    float x,y;
-} _point;
+}
 
 static void _rasterize(_bitmap *result, _point *pts, int *wcount, int windings, float scale_x, float scale_y, float shift_x, float shift_y, int off_x, int off_y, int invert, void *userdata)
 {
@@ -3871,22 +3871,22 @@ typedef int stbrp_coord;
 //                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////
 
-typedef struct
+struct stbrp_context
 {
    int width,height;
    int x,y,bottom_y;
-} stbrp_context;
+}
 
-typedef struct
+struct stbrp_node
 {
    char x;
-} stbrp_node;
+}
 
 struct stbrp_rect
 {
    stbrp_coord x,y;
    int id,w,h,was_packed;
-};
+}
 
 static void stbrp_init_target(stbrp_context *con, int pw, int ph, stbrp_node *nodes, int num_nodes)
 {
