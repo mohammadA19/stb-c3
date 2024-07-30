@@ -117,7 +117,7 @@ struct stbrp_rect
    stbrp_coord    x, y;
    int            was_packed;  // non-zero if valid packing
 
-}; // 16 bytes, nominally
+} // 16 bytes, nominally
 
 
 STBRP_DEF void stbrp_init_target (stbrp_context *context, int width, int height, stbrp_node *nodes, int num_nodes);
@@ -168,8 +168,8 @@ enum
 struct stbrp_node
 {
    stbrp_coord  x,y;
-   stbrp_node  *next;
-};
+   stbrp_node*  next;
+}
 
 struct stbrp_context
 {
@@ -179,10 +179,10 @@ struct stbrp_context
    int init_mode;
    int heuristic;
    int num_nodes;
-   stbrp_node *active_head;
-   stbrp_node *free_head;
-   stbrp_node extra[2]; // we allocate two extra nodes so optimal user-node-count is 'width' not 'width+2'
-};
+   stbrp_node* active_head;
+   stbrp_node* free_head;
+   stbrp_node[2] extra; // we allocate two extra nodes so optimal user-node-count is 'width' not 'width+2'
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -320,11 +320,11 @@ static int stbrp__skyline_find_min_y(stbrp_context *c, stbrp_node *first, int x0
    return min_y;
 }
 
-typedef struct
+struct stbrp__findresult
 {
    int x,y;
-   stbrp_node **prev_link;
-} stbrp__findresult;
+   stbrp_node** prev_link;
+}
 
 static stbrp__findresult stbrp__skyline_find_best_pos(stbrp_context *c, int width, int height)
 {
