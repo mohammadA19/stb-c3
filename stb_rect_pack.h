@@ -196,12 +196,6 @@ $else
    def do_sort = libc::qsort;
 $endif
 
-#ifdef _MSC_VER
-#define STBRP__NOTUSED(v)  (void)(v)
-#else
-#define STBRP__NOTUSED(v)  (void)sizeof(v)
-#endif
-
 enum
 {
    STBRP__INIT_skyline = 1
@@ -264,13 +258,11 @@ void init_target(Context* context, int width, int height, Node* nodes, int num_n
 }
 
 // find minimum y position if it starts at x1
-static int _skyline_find_min_y(Context* c, Node* first, int x0, int width, int* pwaste)
+static int _skyline_find_min_y(Context* c @unused, Node* first, int x0, int width, int* outwaste)
 {
    Node* node = first;
    int x1 = x0 + width;
    int min_y, visited_width, waste_area;
-
-   STBRP__NOTUSED(c);
 
    assert(first.x <= x0);
 
