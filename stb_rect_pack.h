@@ -71,11 +71,7 @@
 #define STBRP_DEF extern
 #endif
 
-typedef struct stbrp_context stbrp_context;
-typedef struct stbrp_node    stbrp_node;
-typedef struct stbrp_rect    stbrp_rect;
-
-typedef int            stbrp_coord;
+def stbrp_coord = int;
 
 #define STBRP__MAXVAL  0x7fffffff
 // Mostly for internal use, but this is the maximum supported coordinate value.
