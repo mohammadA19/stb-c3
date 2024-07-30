@@ -65,12 +65,12 @@
 
 #define STB_RECT_PACK_VERSION  1
 
-def coord = int;
+def Coord = int;
 
 #define STBRP__MAXVAL  0x7fffffff
 // Mostly for internal use, but this is the maximum supported coordinate value.
 
-int pack_rects (context *context, rect *rects, int num_rects);
+int pack_rects (Context* context, Rect *rects, int num_rects);
 // Assign packed locations to rectangles. The rectangles are of type
 // 'rect' defined below, stored in the array 'rects', and there
 // are 'num_rects' many of them.
@@ -95,22 +95,22 @@ int pack_rects (context *context, rect *rects, int num_rects);
 // The function returns 1 if all of the rectangles were successfully
 // packed and 0 otherwise.
 
-struct rect
+struct Rect
 {
    // reserved for your use:
    int      id;
 
    // input:
-   coord    w, h;
+   Coord    w, h;
 
    // output:
-   coord    x, y;
+   Coord    x, y;
    int      was_packed;  // non-zero if valid packing
 
 } // 16 bytes, nominally
 
 
-void init_target (context* context, int width, int height, node* nodes, int num_nodes);
+void init_target (Context* context, int width, int height, Node* nodes, int num_nodes);
 // Initialize a rectangle packer to:
 //    pack a rectangle that is 'width' by 'height' in dimensions
 //    using temporary storage provided by the array 'nodes', which is 'num_nodes' long
@@ -131,13 +131,13 @@ void init_target (context* context, int width, int height, node* nodes, int num_
 // If you do #2, then the non-quantized algorithm will be used, but the algorithm
 // may run out of temporary storage and be unable to pack some rectangles.
 
-void setup_allow_out_of_mem (context* context, int allow_out_of_mem);
+void setup_allow_out_of_mem (Context* context, int allow_out_of_mem);
 // Optionally call this function after init but before doing any packing to
 // change the handling of the out-of-temp-memory scenario, described above.
 // If you call init again, this will be reset to the default (false).
 
 
-void setup_heuristic (context* context, int heuristic);
+void setup_heuristic (Context* context, int heuristic);
 // Optionally select which packing heuristic the library should use. Different
 // heuristics will produce better/worse results for different data sets.
 // If you call init again, this will be reset to the default.
@@ -155,13 +155,13 @@ enum
 // the details of the following structures don't matter to you, but they must
 // be visible so you can handle the memory allocations for them
 
-struct node
+struct Node
 {
-   coord  x,y;
-   node*  next;
+   Coord  x,y;
+   Node*  next;
 }
 
-struct context
+struct Context
 {
    int width;
    int height;
@@ -169,9 +169,9 @@ struct context
    int init_mode;
    int heuristic;
    int num_nodes;
-   node* active_head;
-   node* free_head;
-   node[2] extra; // we allocate two extra nodes so optimal user-node-count is 'width' not 'width+2'
+   Node* active_head;
+   Node* free_head;
+   Node[2] extra; // we allocate two extra nodes so optimal user-node-count is 'width' not 'width+2'
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -195,7 +195,7 @@ enum
    STBRP__INIT_skyline = 1
 };
 
-void setup_heuristic(context* context, int heuristic)
+void setup_heuristic(Context* context, int heuristic)
 {
    switch (context.init_mode) {
       case STBRP__INIT_skyline:
@@ -206,7 +206,7 @@ void setup_heuristic(context* context, int heuristic)
    }
 }
 
-void setup_allow_out_of_mem(context* context, int allow_out_of_mem)
+void setup_allow_out_of_mem(Context* context, int allow_out_of_mem)
 {
    if (allow_out_of_mem)
       // if it's ok to run out of memory, then don't bother aligning them;
@@ -226,7 +226,7 @@ void setup_allow_out_of_mem(context* context, int allow_out_of_mem)
    }
 }
 
-void init_target(context* context, int width, int height, node* nodes, int num_nodes)
+void init_target(Context* context, int width, int height, Node* nodes, int num_nodes)
 {
    int i;
 
@@ -246,15 +246,15 @@ void init_target(context* context, int width, int height, node* nodes, int num_n
    context.extra[0].x = 0;
    context.extra[0].y = 0;
    context.extra[0].next = &context.extra[1];
-   context.extra[1].x = (coord) width;
+   context.extra[1].x = (Coord) width;
    context.extra[1].y = (1<<30);
    context.extra[1].next = NULL;
 }
 
 // find minimum y position if it starts at x1
-static int _skyline_find_min_y(context* c, node* first, int x0, int width, int* pwaste)
+static int _skyline_find_min_y(Context* c, Node* first, int x0, int width, int* pwaste)
 {
-   node* node = first;
+   Node* node = first;
    int x1 = x0 + width;
    int min_y, visited_width, waste_area;
 
@@ -302,18 +302,18 @@ static int _skyline_find_min_y(context* c, node* first, int x0, int width, int* 
    return min_y;
 }
 
-struct _findresult
+struct _FindResult
 {
    int x,y;
-   node** prev_link;
+   Node** prev_link;
 }
 
-static _findresult _skyline_find_best_pos(context* c, int width, int height)
+static _FindResult _skyline_find_best_pos(Context* c, int width, int height)
 {
    int best_waste = (1<<30), best_x, best_y = (1 << 30);
-   _findresult fr;
-   node*  node, tail;
-   node** prev, best = NULL;
+   _FindResult fr;
+   Node*  node, tail;
+   Node** prev, best = NULL;
 
    // align to multiple of c.align
    width = (width + c.align - 1);
@@ -411,11 +411,11 @@ static _findresult _skyline_find_best_pos(context* c, int width, int height)
    return fr;
 }
 
-static _findresult _skyline_pack_rectangle(context* context, int width, int height)
+static _FindResult _skyline_pack_rectangle(Context* context, int width, int height)
 {
    // find best position according to heuristic
-   _findresult res = _skyline_find_best_pos(context, width, height);
-   node* node, cur;
+   _FindResult res = _skyline_find_best_pos(context, width, height);
+   Node* node, cur;
 
    // bail if:
    //    1. it failed
@@ -428,8 +428,8 @@ static _findresult _skyline_pack_rectangle(context* context, int width, int heig
 
    // on success, create new node
    node = context.free_head;
-   node.x = (coord) res.x;
-   node.y = (coord) (res.y + height);
+   node.x = (Coord) res.x;
+   node.y = (Coord) (res.y + height);
 
    context.free_head = node.next;
 
@@ -440,7 +440,7 @@ static _findresult _skyline_pack_rectangle(context* context, int width, int heig
    cur = *res.prev_link;
    if (cur.x < res.x) {
       // preserve the existing one, so start testing with the next one
-      node *next = cur.next;
+      Node* next = cur.next;
       cur.next = node;
       cur = next;
    } else {
@@ -450,7 +450,7 @@ static _findresult _skyline_pack_rectangle(context* context, int width, int heig
    // from here, traverse cur and free the nodes, until we get to one
    // that shouldn't be freed
    while (cur.next && cur.next.x <= res.x + width) {
-      node *next = cur.next;
+      Node* next = cur.next;
       // move the current node to the free list
       cur.next = context.free_head;
       context.free_head = cur;
@@ -461,7 +461,7 @@ static _findresult _skyline_pack_rectangle(context* context, int width, int heig
    node.next = cur;
 
    if (cur.x < res.x + width)
-      cur.x = (coord) (res.x + width);
+      cur.x = (Coord) (res.x + width);
 
 #ifdef _DEBUG
    cur = context.active_head;
@@ -492,8 +492,8 @@ static _findresult _skyline_pack_rectangle(context* context, int width, int heig
 
 static int rect_height_compare(const void* a, const void* b)
 {
-   const rect* p = (const rect*) a;
-   const rect* q = (const rect*) b;
+   const Rect* p = (const Rect*) a;
+   const Rect* q = (const Rect*) b;
    if (p.h > q.h)
       return -1;
    if (p.h < q.h)
@@ -503,12 +503,12 @@ static int rect_height_compare(const void* a, const void* b)
 
 static int rect_original_order(const void* a, const void* b)
 {
-   const rect* p = (const rect*) a;
-   const rect* q = (const rect*) b;
+   const Rect* p = (const Rect*) a;
+   const Rect* q = (const Rect*) b;
    return (p.was_packed < q.was_packed) ? -1 : (p.was_packed > q.was_packed);
 }
 
-int pack_rects(context* context, rect* rects, int num_rects)
+int pack_rects(Context* context, Rect* rects, int num_rects)
 {
    int i, all_rects_packed = 1;
 
@@ -524,10 +524,10 @@ int pack_rects(context* context, rect* rects, int num_rects)
       if (rects[i].w == 0 || rects[i].h == 0) {
          rects[i].x = rects[i].y = 0;  // empty rect needs no space
       } else {
-         _findresult fr = _skyline_pack_rectangle(context, rects[i].w, rects[i].h);
+         _FindResult fr = _skyline_pack_rectangle(context, rects[i].w, rects[i].h);
          if (fr.prev_link) {
-            rects[i].x = (coord) fr.x;
-            rects[i].y = (coord) fr.y;
+            rects[i].x = (Coord) fr.x;
+            rects[i].y = (Coord) fr.y;
          } else {
             rects[i].x = rects[i].y = STBRP__MAXVAL;
          }
