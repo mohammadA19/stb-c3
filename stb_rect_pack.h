@@ -236,13 +236,13 @@ fn int _skyline_find_min_y(Context* c @unused, Node* first, int x0, int width, i
 
    assert(first.x <= x0);
 
-   #if 0
+   $if false
    // skip in case we're past the node
    while (node.next.x <= x0)
       ++node;
-   #else
+   $else
    assert(node.next.x > x0); // we ended up handling this in the caller for efficiency
-   #endif
+   $endif
 
    assert(node.x <= x0);
 
@@ -437,7 +437,7 @@ fn _FindResult _skyline_pack_rectangle(Context* context, int width, int height) 
    if (cur.x < res.x + width)
       cur.x = (Coord) (res.x + width);
 
-#ifdef _DEBUG
+$if env::COMPILER_SAFE_MODE
    cur = context.active_head;
    while (cur.x < context.width) {
       assert(cur.x < cur.next.x);
@@ -459,7 +459,7 @@ fn _FindResult _skyline_pack_rectangle(Context* context, int width, int height) 
       }
       assert(count == context.num_nodes+2);
    }
-#endif
+$endif
 
    return res;
 }
