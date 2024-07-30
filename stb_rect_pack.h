@@ -64,12 +64,10 @@
 //       INCLUDE SECTION
 //
 
-#define STB_RECT_PACK_VERSION  1
-
 def Coord = int;
 
-#define STBRP__MAXVAL  0x7fffffff
-// Mostly for internal use, but this is the maximum supported coordinate value.
+const STB_RECT_PACK_VERSION = 1;
+const MAX_VAL = 0x7fffffff; // Mostly for internal use, but this is the maximum supported coordinate value.
 
 struct Rect
 {
@@ -531,7 +529,7 @@ fn int pack_rects(Context* context, Rect* rects, int num_rects)
             rects[i].x = (Coord) fr.x;
             rects[i].y = (Coord) fr.y;
          } else {
-            rects[i].x = rects[i].y = STBRP__MAXVAL;
+            rects[i].x = rects[i].y = MAX_VAL;
          }
       }
    }
@@ -541,7 +539,7 @@ fn int pack_rects(Context* context, Rect* rects, int num_rects)
 
    // set was_packed flags and all_rects_packed status
    for (i=0; i < num_rects; ++i) {
-      rects[i].was_packed = !(rects[i].x == STBRP__MAXVAL && rects[i].y == STBRP__MAXVAL);
+      rects[i].was_packed = !(rects[i].x == MAX_VAL && rects[i].y == MAX_VAL);
       if (!rects[i].was_packed)
          all_rects_packed = 0;
    }
