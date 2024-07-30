@@ -184,11 +184,6 @@ struct context
 #define STBRP_SORT qsort
 #endif
 
-#ifndef assert
-#include <assert.h>
-#define assert assert
-#endif
-
 #ifdef _MSC_VER
 #define STBRP__NOTUSED(v)  (void)(v)
 #else
