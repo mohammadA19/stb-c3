@@ -191,10 +191,8 @@ struct context
 
 #ifdef _MSC_VER
 #define STBRP__NOTUSED(v)  (void)(v)
-#define STBRP__CDECL       __cdecl
 #else
 #define STBRP__NOTUSED(v)  (void)sizeof(v)
-#define STBRP__CDECL
 #endif
 
 enum
@@ -498,7 +496,7 @@ static _findresult _skyline_pack_rectangle(context* context, int width, int heig
    return res;
 }
 
-static int STBRP__CDECL rect_height_compare(const void* a, const void* b)
+static int rect_height_compare(const void* a, const void* b)
 {
    const rect* p = (const rect*) a;
    const rect* q = (const rect*) b;
@@ -509,7 +507,7 @@ static int STBRP__CDECL rect_height_compare(const void* a, const void* b)
    return (p.w > q.w) ? -1 : (p.w < q.w);
 }
 
-static int STBRP__CDECL rect_original_order(const void* a, const void* b)
+static int rect_original_order(const void* a, const void* b)
 {
    const rect* p = (const rect*) a;
    const rect* q = (const rect*) b;
