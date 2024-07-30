@@ -148,7 +148,7 @@ enum
  * heuristics will produce better/worse results for different data sets.
  * If you call init again, this will be reset to the default.
  */
-void setup_heuristic(Context* context, int heuristic)
+fn void setup_heuristic(Context* context, int heuristic)
 {
    switch (context.init_mode) {
       case STBRP__INIT_skyline:
@@ -164,7 +164,7 @@ void setup_heuristic(Context* context, int heuristic)
  * change the handling of the out-of-temp-memory scenario, described above.
  * If you call init again, this will be reset to the default (false).
  */
-void setup_allow_out_of_mem(Context* context, bool allow_out_of_mem)
+fn void setup_allow_out_of_mem(Context* context, bool allow_out_of_mem)
 {
    if (allow_out_of_mem)
       // if it's ok to run out of memory, then don't bother aligning them;
@@ -205,7 +205,7 @@ void setup_allow_out_of_mem(Context* context, bool allow_out_of_mem)
  * If you do #2, then the non-quantized algorithm will be used, but the algorithm
  * may run out of temporary storage and be unable to pack some rectangles.
  */
-void init_target(Context* context, int width, int height, Node* nodes, int num_nodes)
+fn void init_target(Context* context, int width, int height, Node* nodes, int num_nodes)
 {
    int i;
 
@@ -231,7 +231,7 @@ void init_target(Context* context, int width, int height, Node* nodes, int num_n
 }
 
 // find minimum y position if it starts at x1
-static int _skyline_find_min_y(Context* c @unused, Node* first, int x0, int width, int* outwaste)
+fn int _skyline_find_min_y(Context* c @unused, Node* first, int x0, int width, int* outwaste) @private
 {
    Node* node = first;
    int x1 = x0 + width;
@@ -285,7 +285,7 @@ struct _FindResult
    Node** prev_link;
 }
 
-static _FindResult _skyline_find_best_pos(Context* c, int width, int height)
+fn _FindResult _skyline_find_best_pos(Context* c, int width, int height) @private
 {
    int best_waste = (1<<30), best_x, best_y = (1 << 30);
    _FindResult fr;
@@ -388,7 +388,7 @@ static _FindResult _skyline_find_best_pos(Context* c, int width, int height)
    return fr;
 }
 
-static _FindResult _skyline_pack_rectangle(Context* context, int width, int height)
+fn _FindResult _skyline_pack_rectangle(Context* context, int width, int height) @private
 {
    // find best position according to heuristic
    _FindResult res = _skyline_find_best_pos(context, width, height);
@@ -467,7 +467,7 @@ static _FindResult _skyline_pack_rectangle(Context* context, int width, int heig
    return res;
 }
 
-static int rect_height_compare(const void* a, const void* b)
+fn int rect_height_compare(const void* a, const void* b) @private
 {
    const Rect* p = (const Rect*) a;
    const Rect* q = (const Rect*) b;
@@ -478,7 +478,7 @@ static int rect_height_compare(const void* a, const void* b)
    return (p.w > q.w) ? -1 : (p.w < q.w);
 }
 
-static int rect_original_order(const void* a, const void* b)
+fn int rect_original_order(const void* a, const void* b) @private
 {
    const Rect* p = (const Rect*) a;
    const Rect* q = (const Rect*) b;
@@ -510,7 +510,7 @@ static int rect_original_order(const void* a, const void* b)
  * The function returns 1 if all of the rectangles were successfully
  * packed and 0 otherwise.
  */
-int pack_rects(Context* context, Rect* rects, int num_rects)
+fn int pack_rects(Context* context, Rect* rects, int num_rects)
 {
    int i, all_rects_packed = 1;
 
