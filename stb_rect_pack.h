@@ -201,7 +201,6 @@ void setup_heuristic(context* context, int heuristic)
       case STBRP__INIT_skyline:
          assert(heuristic == STBRP_HEURISTIC_Skyline_BL_sortHeight || heuristic == STBRP_HEURISTIC_Skyline_BF_sortHeight);
          context.heuristic = heuristic;
-         break;
       default:
          assert(0);
    }
