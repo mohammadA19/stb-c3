@@ -110,7 +110,7 @@ struct rect
 } // 16 bytes, nominally
 
 
-void init_target (context *context, int width, int height, node *nodes, int num_nodes);
+void init_target (context* context, int width, int height, node* nodes, int num_nodes);
 // Initialize a rectangle packer to:
 //    pack a rectangle that is 'width' by 'height' in dimensions
 //    using temporary storage provided by the array 'nodes', which is 'num_nodes' long
@@ -131,13 +131,13 @@ void init_target (context *context, int width, int height, node *nodes, int num_
 // If you do #2, then the non-quantized algorithm will be used, but the algorithm
 // may run out of temporary storage and be unable to pack some rectangles.
 
-void setup_allow_out_of_mem (context *context, int allow_out_of_mem);
+void setup_allow_out_of_mem (context* context, int allow_out_of_mem);
 // Optionally call this function after init but before doing any packing to
 // change the handling of the out-of-temp-memory scenario, described above.
 // If you call init again, this will be reset to the default (false).
 
 
-void setup_heuristic (context *context, int heuristic);
+void setup_heuristic (context* context, int heuristic);
 // Optionally select which packing heuristic the library should use. Different
 // heuristics will produce better/worse results for different data sets.
 // If you call init again, this will be reset to the default.
@@ -202,7 +202,7 @@ enum
    STBRP__INIT_skyline = 1
 };
 
-void setup_heuristic(context *context, int heuristic)
+void setup_heuristic(context* context, int heuristic)
 {
    switch (context.init_mode) {
       case STBRP__INIT_skyline:
@@ -214,7 +214,7 @@ void setup_heuristic(context *context, int heuristic)
    }
 }
 
-void setup_allow_out_of_mem(context *context, int allow_out_of_mem)
+void setup_allow_out_of_mem(context* context, int allow_out_of_mem)
 {
    if (allow_out_of_mem)
       // if it's ok to run out of memory, then don't bother aligning them;
@@ -234,7 +234,7 @@ void setup_allow_out_of_mem(context *context, int allow_out_of_mem)
    }
 }
 
-void init_target(context *context, int width, int height, node *nodes, int num_nodes)
+void init_target(context* context, int width, int height, node *nodes, int num_nodes)
 {
    int i;
 
@@ -260,9 +260,9 @@ void init_target(context *context, int width, int height, node *nodes, int num_n
 }
 
 // find minimum y position if it starts at x1
-static int _skyline_find_min_y(context *c, node *first, int x0, int width, int *pwaste)
+static int _skyline_find_min_y(context* c, node* first, int x0, int width, int* pwaste)
 {
-   node *node = first;
+   node* node = first;
    int x1 = x0 + width;
    int min_y, visited_width, waste_area;
 
@@ -316,11 +316,12 @@ struct _findresult
    node** prev_link;
 }
 
-static _findresult _skyline_find_best_pos(context *c, int width, int height)
+static _findresult _skyline_find_best_pos(context* c, int width, int height)
 {
    int best_waste = (1<<30), best_x, best_y = (1 << 30);
    _findresult fr;
-   node **prev, *node, *tail, **best = NULL;
+   node*  node, tail;
+   node** prev, best = NULL;
 
    // align to multiple of c.align
    width = (width + c.align - 1);
@@ -418,11 +419,11 @@ static _findresult _skyline_find_best_pos(context *c, int width, int height)
    return fr;
 }
 
-static _findresult _skyline_pack_rectangle(context *context, int width, int height)
+static _findresult _skyline_pack_rectangle(context* context, int width, int height)
 {
    // find best position according to heuristic
    _findresult res = _skyline_find_best_pos(context, width, height);
-   node *node, *cur;
+   node* node, cur;
 
    // bail if:
    //    1. it failed
@@ -497,10 +498,10 @@ static _findresult _skyline_pack_rectangle(context *context, int width, int heig
    return res;
 }
 
-static int STBRP__CDECL rect_height_compare(const void *a, const void *b)
+static int STBRP__CDECL rect_height_compare(const void* a, const void* b)
 {
-   const rect *p = (const rect *) a;
-   const rect *q = (const rect *) b;
+   const rect* p = (const rect*) a;
+   const rect* q = (const rect*) b;
    if (p.h > q.h)
       return -1;
    if (p.h < q.h)
@@ -508,14 +509,14 @@ static int STBRP__CDECL rect_height_compare(const void *a, const void *b)
    return (p.w > q.w) ? -1 : (p.w < q.w);
 }
 
-static int STBRP__CDECL rect_original_order(const void *a, const void *b)
+static int STBRP__CDECL rect_original_order(const void* a, const void* b)
 {
-   const rect *p = (const rect *) a;
-   const rect *q = (const rect *) b;
+   const rect* p = (const rect*) a;
+   const rect* q = (const rect*) b;
    return (p.was_packed < q.was_packed) ? -1 : (p.was_packed > q.was_packed);
 }
 
-int pack_rects(context *context, rect *rects, int num_rects)
+int pack_rects(context* context, rect* rects, int num_rects)
 {
    int i, all_rects_packed = 1;
 
