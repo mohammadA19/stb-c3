@@ -83,13 +83,12 @@ struct Rect
 
 } // 16 bytes, nominally
 
-enum
+enum HeuristicSkyline
 {
-   STBRP_HEURISTIC_Skyline_default=0,
-   STBRP_HEURISTIC_Skyline_BL_sortHeight = STBRP_HEURISTIC_Skyline_default,
-   STBRP_HEURISTIC_Skyline_BF_sortHeight
-};
-
+   DEFAULT = 0,
+   BL_SORT_HEIGHT = 0,
+   BF_SORT_HEIGHT,
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -107,8 +106,8 @@ struct Context
    int width;
    int height;
    int align;
-   int init_mode;
-   int heuristic;
+   InitMode init_mode;
+   HeuristicSkyline heuristic;
    int num_nodes;
    Node* active_head;
    Node* free_head;
@@ -136,21 +135,21 @@ $else
    def do_sort = libc::qsort;
 $endif
 
-enum
+enum InitMode
 {
-   STBRP__INIT_skyline = 1
-};
+   SKYLINE = 1,
+}
 
 /**
  * Optionally select which packing heuristic the library should use. Different
  * heuristics will produce better/worse results for different data sets.
  * If you call init again, this will be reset to the default.
  */
-fn void setup_heuristic(Context* context, int heuristic)
+fn void setup_heuristic(Context* context, HeuristicSkyline heuristic)
 {
    switch (context.init_mode) {
-      case STBRP__INIT_skyline:
-         assert(heuristic == STBRP_HEURISTIC_Skyline_BL_sortHeight || heuristic == STBRP_HEURISTIC_Skyline_BF_sortHeight);
+      case SKYLINE:
+         assert(heuristic == BL_SORT_HEIGHT || heuristic == BF_SORT_HEIGHT);
          context.heuristic = heuristic;
       default:
          assert(0);
@@ -210,8 +209,8 @@ fn void init_target(Context* context, int width, int height, Node* nodes, int nu
    for (i=0; i < num_nodes-1; ++i)
       nodes[i].next = &nodes[i+1];
    nodes[i].next = NULL;
-   context.init_mode = STBRP__INIT_skyline;
-   context.heuristic = STBRP_HEURISTIC_Skyline_default;
+   context.init_mode = SKYLINE;
+   context.heuristic = DEFAULT;
    context.free_head = &nodes[0];
    context.active_head = &context.extra[0];
    context.width = width;
@@ -307,7 +306,7 @@ fn _FindResult _skyline_find_best_pos(Context* c, int width, int height) @privat
    while (node.x + width <= c.width) {
       int y,waste;
       y = _skyline_find_min_y(c, node, node.x, width, &waste);
-      if (c.heuristic == STBRP_HEURISTIC_Skyline_BL_sortHeight) { // actually just want to test BL
+      if (c.heuristic == BL_SORT_HEIGHT) { // actually just want to test BL
          // bottom left
          if (y < best_y) {
             best_y = y;
@@ -347,7 +346,7 @@ fn _FindResult _skyline_find_best_pos(Context* c, int width, int height) @privat
    //
    // This makes BF take about 2x the time
 
-   if (c.heuristic == STBRP_HEURISTIC_Skyline_BF_sortHeight) {
+   if (c.heuristic == BF_SORT_HEIGHT) {
       tail = c.active_head;
       node = c.active_head;
       prev = &c.active_head;
