@@ -63,19 +63,12 @@
 //       INCLUDE SECTION
 //
 
-#ifndef STB_INCLUDE_STB_RECT_PACK_H
-#define STB_INCLUDE_STB_RECT_PACK_H
-
 #define STB_RECT_PACK_VERSION  1
 
 #ifdef STBRP_STATIC
 #define STBRP_DEF static
 #else
 #define STBRP_DEF extern
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 typedef struct stbrp_context stbrp_context;
@@ -191,18 +184,11 @@ struct stbrp_context
    stbrp_node extra[2]; // we allocate two extra nodes so optimal user-node-count is 'width' not 'width+2'
 };
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
 //////////////////////////////////////////////////////////////////////////////
 //
 //     IMPLEMENTATION SECTION
 //
 
-#ifdef STB_RECT_PACK_IMPLEMENTATION
 #ifndef STBRP_SORT
 #include <stdlib.h>
 #define STBRP_SORT qsort
@@ -578,7 +564,6 @@ STBRP_DEF int stbrp_pack_rects(stbrp_context *context, stbrp_rect *rects, int nu
    // return the all_rects_packed status
    return all_rects_packed;
 }
-#endif
 
 /*
 ------------------------------------------------------------------------------
