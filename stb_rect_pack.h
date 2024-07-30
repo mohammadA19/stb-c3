@@ -18,8 +18,9 @@
 //
 // More docs to come.
 //
-// No memory allocations; uses qsort() and assert() from stdlib.
-// Can override those by defining STBRP_SORT and assert.
+// No memory allocations; uses qsort() from libc.
+// Can override those by defining sort() function under 
+// module stb::rect_pack in your file.
 //
 // This library currently uses the Skyline Bottom-Left algorithm.
 //
@@ -179,10 +180,21 @@ struct Context
 //     IMPLEMENTATION SECTION
 //
 
-#ifndef STBRP_SORT
-#include <stdlib.h>
-#define STBRP_SORT qsort
-#endif
+// #ifndef STBRP_SORT
+// #include <stdlib.h>
+// #define STBRP_SORT qsort
+// #endif
+
+// def CompareFunction = fn int(void*, void*);
+
+$if $defined(sort)
+   // To provide a custom sort function, define sort()
+   // function under module stb::rect_pack in your file.
+   def do_sort = sort;
+$else
+   import std::libc;
+   def do_sort = libc::qsort;
+$endif
 
 #ifdef _MSC_VER
 #define STBRP__NOTUSED(v)  (void)(v)
@@ -518,7 +530,7 @@ int pack_rects(Context* context, Rect* rects, int num_rects)
    }
 
    // sort according to heuristic
-   STBRP_SORT(rects, num_rects, sizeof(rects[0]), rect_height_compare);
+   do_sort(rects, num_rects, sizeof(rects[0]), rect_height_compare);
 
    for (i=0; i < num_rects; ++i) {
       if (rects[i].w == 0 || rects[i].h == 0) {
@@ -535,7 +547,7 @@ int pack_rects(Context* context, Rect* rects, int num_rects)
    }
 
    // unsort
-   STBRP_SORT(rects, num_rects, sizeof(rects[0]), rect_original_order);
+   do_sort(rects, num_rects, sizeof(rects[0]), rect_original_order);
 
    // set was_packed flags and all_rects_packed status
    for (i=0; i < num_rects; ++i) {
