@@ -234,7 +234,7 @@ void setup_allow_out_of_mem(context* context, int allow_out_of_mem)
    }
 }
 
-void init_target(context* context, int width, int height, node *nodes, int num_nodes)
+void init_target(context* context, int width, int height, node* nodes, int num_nodes)
 {
    int i;
 
