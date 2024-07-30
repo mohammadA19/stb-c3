@@ -64,6 +64,8 @@
 //       INCLUDE SECTION
 //
 
+module stb::rect_pack;
+
 def Coord = int;
 
 const STB_RECT_PACK_VERSION = 1;
