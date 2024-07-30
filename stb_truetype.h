@@ -335,15 +335,15 @@ int main(int argc, char **argv)
 {
    fontinfo font;
    char* bitmap;
-   int w,h,i,j,c = (argc > 1 ? atoi(argv[1]) : 'a'), s = (argc > 2 ? atoi(argv[2]) : 20);
+   int w,h,c = (argc > 1 ? atoi(argv[1]) : 'a'), s = (argc > 2 ? atoi(argv[2]) : 20);
 
    fread(ttf_buffer, 1, 1<<25, fopen(argc > 3 ? argv[3] : "c:/windows/fonts/arialbd.ttf", "rb"));
 
    InitFont(&font, ttf_buffer, GetFontOffsetForIndex(ttf_buffer,0));
    bitmap = GetCodepointBitmap(&font, 0,ScaleForPixelHeight(&font, s), c, &w, &h, 0,0);
 
-   for (j=0; j < h; ++j) {
-      for (i=0; i < w; ++i)
+   for (int j = 0; j < h; ++j) {
+      for (int i = 0; i < w; ++i)
          putchar(" .:ioVM@"[bitmap[j*w+i]>>5]);
       putchar('\n');
    }
@@ -375,7 +375,7 @@ char screen[20][79];
 int main(int arg, char **argv)
 {
    fontinfo font;
-   int i,j,ascent,baseline,ch=0;
+   int ascent,baseline,ch=0;
    float scale, xpos=2; // leave a little padding in case the character extends left
    char* text = "Heljo World!"; // intentionally misspelled to show 'lj' brokenness
 
@@ -402,8 +402,8 @@ int main(int arg, char **argv)
       ++ch;
    }
 
-   for (j=0; j < 20; ++j) {
-      for (i=0; i < 78; ++i)
+   for (int j = 0; j < 20; ++j) {
+      for (int i = 0; i < 78; ++i)
          putchar(" .:ioVM@"[screen[j][i]>>5]);
       putchar('\n');
    }
@@ -1132,9 +1132,8 @@ static void _buf_skip(_buf* b, int o)
 static uint _buf_get(_buf* b, int n)
 {
    uint v = 0;
-   int i;
    assert (n >= 1 && n <= 4);
-   for (i = 0; i < n; i++)
+   for (int i = 0; i < n; i++)
       v = (v << 8) | _buf_get8(b);
    return v;
 }
@@ -1219,9 +1218,8 @@ static _buf _dict_get(_buf* b, int key)
 
 static void _dict_get_ints(_buf* b, int key, int outcount, uint* out)
 {
-   int i;
    _buf operands = _dict_get(b, key);
-   for (i = 0; i < outcount && operands.cursor < operands.size; i++)
+   for (int i = 0; i < outcount && operands.cursor < operands.size; i++)
       out[i] = _cff_int(&operands);
 }
 
@@ -1281,8 +1279,7 @@ static uint _find_table(char* data, uint fontstart, const char* tag)
 {
    int num_tables = ttUSHORT(data+fontstart+4);
    uint tabledir = fontstart + 12;
-   int i;
-   for (i=0; i < num_tables; ++i) {
+   for (int i = 0; i < num_tables; ++i) {
       uint loc = tabledir + 16*i;
       if (tag(data+loc+0, tag))
          return ttULONG(data+loc+8);
@@ -1357,7 +1354,7 @@ static int _get_svg(fontinfo* info)
 static int InitFont_internal(fontinfo* info, char* data, int fontstart)
 {
    uint cmap, t;
-   int i,numTables;
+   int numTables;
 
    info.data = data;
    info.fontstart = fontstart;
@@ -1440,7 +1437,7 @@ static int InitFont_internal(fontinfo* info, char* data, int fontstart)
    // the same regardless of glyph.
    numTables = ttUSHORT(data + cmap + 2);
    info.index_map = 0;
-   for (i=0; i < numTables; ++i) {
+   for (int i = 0; i < numTables; ++i) {
       uint encoding_record = cmap + 4 + 8 * i;
       // find an encoding we understand:
       switch(ttUSHORT(data+encoding_record)) {
@@ -1956,7 +1953,7 @@ static _buf _get_subr(_buf idx, int n)
 static _buf _cid_get_glyph_subrs(const fontinfo* info, int glyph_index)
 {
    _buf fdselect = info.fdselect;
-   int nranges, start, end, v, fmt, fdselector = -1, i;
+   int nranges, start, end, v, fmt, fdselector = -1;
 
    _buf_seek(&fdselect, 0);
    fmt = _buf_get8(&fdselect);
@@ -1967,7 +1964,7 @@ static _buf _cid_get_glyph_subrs(const fontinfo* info, int glyph_index)
    } else if (fmt == 3) {
       nranges = _buf_get16(&fdselect);
       start = _buf_get16(&fdselect);
-      for (i = 0; i < nranges; i++) {
+      for (int i = 0; i < nranges; i++) {
          v = _buf_get8(&fdselect);
          end = _buf_get16(&fdselect);
          if (glyph_index >= start && glyph_index < end) {
@@ -2306,7 +2303,7 @@ STBTT_DEF int  GetKerningTableLength(const fontinfo* info)
 STBTT_DEF int GetKerningTable(const fontinfo* info, kerningentry* table, int table_length)
 {
    char* data = info.data + info.kern;
-   int k, length;
+   int length;
 
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info.kern)
@@ -2320,7 +2317,7 @@ STBTT_DEF int GetKerningTable(const fontinfo* info, kerningentry* table, int tab
    if (table_length < length)
       length = table_length;
 
-   for (k = 0; k < length; k++)
+   for (int k = 0; k < length; k++)
    {
       table[k].glyph1 = ttUSHORT(data+18+(k*6));
       table[k].glyph2 = ttUSHORT(data+20+(k*6));
@@ -2473,7 +2470,6 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
    char* lookupList;
    ushort lookupCount;
    char* data;
-   int i, sti;
 
    if (!info.gpos) return 0;
 
@@ -2486,7 +2482,7 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
    lookupList = data + lookupListOffset;
    lookupCount = ttUSHORT(lookupList);
 
-   for (i=0; i<lookupCount; ++i) {
+   for (int i = 0; i<lookupCount; ++i) {
       ushort lookupOffset = ttUSHORT(lookupList + 2 + 2 * i);
       char* lookupTable = lookupList + lookupOffset;
 
@@ -2496,7 +2492,7 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
       if (lookupType != 2) // Pair Adjustment Positioning Subtable
          continue;
 
-      for (sti=0; sti<subTableCount; sti++) {
+      for (int sti = 0; sti<subTableCount; sti++) {
          ushort subtableOffset = ttUSHORT(subTableOffsets + 2 * sti);
          char* table = lookupTable + subtableOffset;
          ushort posFormat = ttUSHORT(table);
@@ -2650,14 +2646,13 @@ STBTT_DEF void FreeShape(const fontinfo* info, vertex* v)
 
 STBTT_DEF char* FindSVGDoc(const fontinfo* info, int gl)
 {
-   int i;
    char* data = info.data;
    char* svg_doc_list = data + _get_svg((fontinfo *) info);
 
    int numEntries = ttUSHORT(svg_doc_list);
    char* svg_docs = svg_doc_list + 2;
 
-   for(i=0; i<numEntries; i++) {
+   for(int i = 0; i < numEntries; i++) {
       char* svg_doc = svg_docs + (12 * i);
       if ((gl >= ttUSHORT(svg_doc)) && (gl <= ttUSHORT(svg_doc + 2)))
          return svg_doc;
@@ -3272,7 +3267,7 @@ static void _rasterize_sorted_edges(_bitmap* result, _edge* e, int n, int vsubsa
 {
    _hheap hh = { 0, 0, 0 };
    _active_edge* active = NULL;
-   int y,j=0, i;
+   int y,j=0;
    float scanline_data[129], *scanline, *scanline2;
 
    STBTT__NOTUSED(vsubsample);
@@ -3336,7 +3331,7 @@ static void _rasterize_sorted_edges(_bitmap* result, _edge* e, int n, int vsubsa
 
       {
          float sum = 0;
-         for (i=0; i < result.w; ++i) {
+         for (int i = 0; i < result.w; ++i) {
             float k;
             int m;
             sum += scanline2[i];
@@ -3372,8 +3367,8 @@ static void _rasterize_sorted_edges(_bitmap* result, _edge* e, int n, int vsubsa
 
 static void _sort_edges_ins_sort(_edge* p, int n)
 {
-   int i,j;
-   for (i=1; i < n; ++i) {
+   int j;
+   for (int i = 1; i < n; ++i) {
       _edge t = p[i], *a = &t;
       j = i;
       while (j > 0) {
@@ -3791,7 +3786,7 @@ static int BakeFontBitmap_internal(char* data, int offset,  // font location (us
                                 bakedchar* chardata)
 {
    float scale;
-   int x,y,bottom_y, i;
+   int x,y,bottom_y;
    fontinfo f;
    f.userdata = NULL;
    if (!InitFont(&f, data, offset))
@@ -3802,7 +3797,7 @@ static int BakeFontBitmap_internal(char* data, int offset,  // font location (us
 
    scale = ScaleForPixelHeight(&f, pixel_height);
 
-   for (i=0; i < num_chars; ++i) {
+   for (int i = 0; i < num_chars; ++i) {
       int advance, lsb, x0,y0,x1,y1,gw,gh;
       int g = FindGlyphIndex(&f, first_char + i);
       GetGlyphHMetrics(&f, g, &advance, &lsb);
@@ -3987,9 +3982,9 @@ static void _h_prefilter(char* pixels, int w, int h, int stride_in_bytes, uint k
 {
    char buffer[STBTT_MAX_OVERSAMPLE];
    int safe_w = w - kernel_width;
-   int j;
+
    STBTT_memset(buffer, 0, STBTT_MAX_OVERSAMPLE); // suppress bogus warning from VS2013 -analyze
-   for (j=0; j < h; ++j) {
+   for (int j = 0; j < h; ++j) {
       int i;
       uint total;
       STBTT_memset(buffer, 0, kernel_width);
@@ -4049,9 +4044,8 @@ static void _v_prefilter(char* pixels, int w, int h, int stride_in_bytes, uint k
 {
    char buffer[STBTT_MAX_OVERSAMPLE];
    int safe_h = h - kernel_width;
-   int j;
    STBTT_memset(buffer, 0, STBTT_MAX_OVERSAMPLE); // suppress bogus warning from VS2013 -analyze
-   for (j=0; j < w; ++j) {
+   for (int j = 0; j < w; ++j) {
       int i;
       uint total;
       STBTT_memset(buffer, 0, kernel_width);
@@ -4122,16 +4116,15 @@ static float _oversample_shift(int oversample)
 // rects array must be big enough to accommodate all characters in the given ranges
 STBTT_DEF int PackFontRangesGatherRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, stbrp_rect* rects)
 {
-   int i,j,k;
+   int k = 0;
    int missing_glyph_added = 0;
 
-   k=0;
-   for (i=0; i < num_ranges; ++i) {
+   for (int i = 0; i < num_ranges; ++i) {
       float fh = ranges[i].font_size;
       float scale = fh > 0 ? ScaleForPixelHeight(info, fh) : ScaleForMappingEmToPixels(info, -fh);
       ranges[i].h_oversample = (char) spc.h_oversample;
       ranges[i].v_oversample = (char) spc.v_oversample;
-      for (j=0; j < ranges[i].num_chars; ++j) {
+      for (int j = 0; j < ranges[i].num_chars; ++j) {
          int x0,y0,x1,y1;
          int codepoint = ranges[i].array_of_unicode_codepoints == NULL ? ranges[i].first_unicode_codepoint_in_range + j : ranges[i].array_of_unicode_codepoints[j];
          int glyph = FindGlyphIndex(info, codepoint);
@@ -4181,14 +4174,14 @@ STBTT_DEF void MakeGlyphBitmapSubpixelPrefilter(const fontinfo* info, char* outp
 // rects array must be big enough to accommodate all characters in the given ranges
 STBTT_DEF int PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, stbrp_rect* rects)
 {
-   int i,j,k, missing_glyph = -1, return_value = 1;
+   int k, missing_glyph = -1, return_value = 1;
 
    // save current values
    int old_h_over = spc.h_oversample;
    int old_v_over = spc.v_oversample;
 
    k = 0;
-   for (i=0; i < num_ranges; ++i) {
+   for (int i = 0; i < num_ranges; ++i) {
       float fh = ranges[i].font_size;
       float scale = fh > 0 ? ScaleForPixelHeight(info, fh) : ScaleForMappingEmToPixels(info, -fh);
       float recip_h,recip_v,sub_x,sub_y;
@@ -4198,7 +4191,7 @@ STBTT_DEF int PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* i
       recip_v = 1.0f / spc.v_oversample;
       sub_x = _oversample_shift(spc.h_oversample);
       sub_y = _oversample_shift(spc.v_oversample);
-      for (j=0; j < ranges[i].num_chars; ++j) {
+      for (int j = 0; j < ranges[i].num_chars; ++j) {
          stbrp_rect* r = &rects[k];
          if (r.was_packed && r.w != 0 && r.h != 0) {
             packedchar* bc = &ranges[i].chardata_for_range[j];
@@ -4440,7 +4433,6 @@ static int equal(float* a, float* b)
 
 static int _compute_crossings_x(float x, float y, int nverts, vertex* verts)
 {
-   int i;
    float orig[2], ray[2] = { 1, 0 };
    float y_frac;
    int winding = 0;
@@ -4456,7 +4448,7 @@ static int _compute_crossings_x(float x, float y, int nverts, vertex* verts)
    orig[1] = y;
 
    // test a ray from (-infinity,y) to (x,y)
-   for (i=0; i < nverts; ++i) {
+   for (int i = 0; i < nverts; ++i) {
       if (verts[i].type == STBTT_vline) {
          int x0 = (int) verts[i-1].x, y0 = (int) verts[i-1].y;
          int x1 = (int) verts[i  ].x, y1 = (int) verts[i  ].y;
@@ -4797,7 +4789,7 @@ static int CompareUTF8toUTF16_bigendian_internal(char* s1, int len1, char* s2, i
 // will be BIG-ENDIAN... use CompareUTF8toUTF16_bigendian() to compare
 STBTT_DEF const char* GetFontNameString(const fontinfo* font, int* length, int platformID, int encodingID, int languageID, int nameID)
 {
-   int i,count,stringOffset;
+   int count,stringOffset;
    char* fc = font.data;
    uint offset = font.fontstart;
    uint nm = _find_table(fc, offset, "name");
@@ -4805,7 +4797,7 @@ STBTT_DEF const char* GetFontNameString(const fontinfo* font, int* length, int p
 
    count = ttUSHORT(fc+nm+2);
    stringOffset = nm + ttUSHORT(fc+nm+4);
-   for (i=0; i < count; ++i) {
+   for (int i = 0; i < count; ++i) {
       uint loc = nm + 6 + 12 * i;
       if (platformID == ttUSHORT(fc+loc+0) && encodingID == ttUSHORT(fc+loc+2)
           && languageID == ttUSHORT(fc+loc+4) && nameID == ttUSHORT(fc+loc+6)) {
@@ -4818,11 +4810,10 @@ STBTT_DEF const char* GetFontNameString(const fontinfo* font, int* length, int p
 
 static int _matchpair(char* fc, uint nm, char* name, int nlen, int target_id, int next_id)
 {
-   int i;
    int count = ttUSHORT(fc+nm+2);
    int stringOffset = nm + ttUSHORT(fc+nm+4);
 
-   for (i=0; i < count; ++i) {
+   for (int i = 0; i < count; ++i) {
       uint loc = nm + 6 + 12 * i;
       int id = ttUSHORT(fc+loc+6);
       if (id == target_id) {
@@ -4894,8 +4885,7 @@ static int _matches(char* fc, uint offset, char* name, int flags)
 
 static int FindMatchingFont_internal(char* font_collection, char* name_utf8, int flags)
 {
-   int i;
-   for (i=0;;++i) {
+   for (int i = 0;;++i) {
       int off = GetFontOffsetForIndex(font_collection, i);
       if (off < 0) return off;
       if (_matches((char *) font_collection, off, (char*) name_utf8, flags))
