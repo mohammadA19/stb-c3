@@ -123,7 +123,7 @@ void init_target (Context* context, int width, int height, Node* nodes, int num_
 //
 // Note: to guarantee best results, either:
 //       1. make sure 'num_nodes' >= 'width'
-//   or  2. call allow_out_of_mem() defined below with 'allow_out_of_mem = 1'
+//   or  2. call allow_out_of_mem() defined below with 'allow_out_of_mem = true'
 //
 // If you don't do either of the above things, widths will be quantized to multiples
 // of small integers to guarantee the algorithm doesn't run out of temporary storage.
@@ -131,7 +131,7 @@ void init_target (Context* context, int width, int height, Node* nodes, int num_
 // If you do #2, then the non-quantized algorithm will be used, but the algorithm
 // may run out of temporary storage and be unable to pack some rectangles.
 
-void setup_allow_out_of_mem (Context* context, int allow_out_of_mem);
+void setup_allow_out_of_mem (Context* context, bool allow_out_of_mem);
 // Optionally call this function after init but before doing any packing to
 // change the handling of the out-of-temp-memory scenario, described above.
 // If you call init again, this will be reset to the default (false).
@@ -206,7 +206,7 @@ void setup_heuristic(Context* context, int heuristic)
    }
 }
 
-void setup_allow_out_of_mem(Context* context, int allow_out_of_mem)
+void setup_allow_out_of_mem(Context* context, bool allow_out_of_mem)
 {
    if (allow_out_of_mem)
       // if it's ok to run out of memory, then don't bother aligning them;
@@ -240,7 +240,7 @@ void init_target(Context* context, int width, int height, Node* nodes, int num_n
    context.width = width;
    context.height = height;
    context.num_nodes = num_nodes;
-   setup_allow_out_of_mem(context, 0);
+   setup_allow_out_of_mem(context, false);
 
    // node 0 is the full width, node 1 is the sentinel (lets us not store width explicitly)
    context.extra[0].x = 0;
