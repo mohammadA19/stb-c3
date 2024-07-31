@@ -634,9 +634,9 @@ void GetPackedQuad(const packedchar* chardata, int pw, int ph,  // same data as 
                                aligned_quad* q,      // output: quad to draw
                                int align_to_integer);
 
-int  PackFontRangesGatherRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, stbrp_rect* rects);
-void PackFontRangesPackRects(pack_context* spc, stbrp_rect* rects, int num_rects);
-int  PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, stbrp_rect* rects);
+int  PackFontRangesGatherRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, rect_pack::Rect* rects);
+void PackFontRangesPackRects(pack_context* spc, rect_pack::Rect* rects, int num_rects);
+int  PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, rect_pack::Rect* rects);
 // Calling these functions in sequence is roughly equivalent to calling
 // PackFontRanges(). If you more control over the packing of multiple
 // fonts, or if you want to pack custom data into a font texture, take a look
@@ -3845,70 +3845,61 @@ void GetBakedQuad(const bakedchar* chardata, int pw, int ph, int char_index, flo
 // rectangle packing replacement routines if you don't have stb_rect_pack.h
 //
 
-#ifndef STB_RECT_PACK_VERSION
+// #ifndef STB_RECT_PACK_VERSION
 
-typedef int stbrp_coord;
+// typedef int stbrp_coord;
 
-////////////////////////////////////////////////////////////////////////////////////
-//                                                                                //
-//                                                                                //
-// COMPILER WARNING ?!?!?                                                         //
-//                                                                                //
-//                                                                                //
-// if you get a compile warning due to these symbols being defined more than      //
-// once, move #include "stb_rect_pack.h" before #include "stb_truetype.h"         //
-//                                                                                //
-////////////////////////////////////////////////////////////////////////////////////
+// struct stbrp_context
+// {
+//    int width,height;
+//    int x,y,bottom_y;
+// }
+// 
+// struct stbrp_node
+// {
+//    char x;
+// }
+// 
+// struct stbrp_rect
+// {
+//    stbrp_coord x,y;
+//    int id,w,h,was_packed;
+// }
+// 
+// static void stbrp_init_target(stbrp_context* con, int pw, int ph, stbrp_node* nodes, int num_nodes)
+// {
+//    con.width  = pw;
+//    con.height = ph;
+//    con.x = 0;
+//    con.y = 0;
+//    con.bottom_y = 0;
+//    STBTT__NOTUSED(nodes);
+//    STBTT__NOTUSED(num_nodes);
+// }
+// 
+// static void stbrp_pack_rects(stbrp_context* con, stbrp_rect* rects, int num_rects)
+// {
+//    int i;
+//    for (i=0; i < num_rects; ++i) {
+//       if (con.x + rects[i].w > con.width) {
+//          con.x = 0;
+//          con.y = con.bottom_y;
+//       }
+//       if (con.y + rects[i].h > con.height)
+//          break;
+//       rects[i].x = con.x;
+//       rects[i].y = con.y;
+//       rects[i].was_packed = 1;
+//       con.x += rects[i].w;
+//       if (con.y + rects[i].h > con.bottom_y)
+//          con.bottom_y = con.y + rects[i].h;
+//    }
+//    for (   ; i < num_rects; ++i)
+//       rects[i].was_packed = 0;
+// }
+// #endif
 
-struct stbrp_context
-{
-   int width,height;
-   int x,y,bottom_y;
-}
-
-struct stbrp_node
-{
-   char x;
-}
-
-struct stbrp_rect
-{
-   stbrp_coord x,y;
-   int id,w,h,was_packed;
-}
-
-static void stbrp_init_target(stbrp_context* con, int pw, int ph, stbrp_node* nodes, int num_nodes)
-{
-   con.width  = pw;
-   con.height = ph;
-   con.x = 0;
-   con.y = 0;
-   con.bottom_y = 0;
-   STBTT__NOTUSED(nodes);
-   STBTT__NOTUSED(num_nodes);
-}
-
-static void stbrp_pack_rects(stbrp_context* con, stbrp_rect* rects, int num_rects)
-{
-   int i;
-   for (i=0; i < num_rects; ++i) {
-      if (con.x + rects[i].w > con.width) {
-         con.x = 0;
-         con.y = con.bottom_y;
-      }
-      if (con.y + rects[i].h > con.height)
-         break;
-      rects[i].x = con.x;
-      rects[i].y = con.y;
-      rects[i].was_packed = 1;
-      con.x += rects[i].w;
-      if (con.y + rects[i].h > con.bottom_y)
-         con.bottom_y = con.y + rects[i].h;
-   }
-   for (   ; i < num_rects; ++i)
-      rects[i].was_packed = 0;
-}
-#endif
+import stb::rect_pack;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -3919,9 +3910,9 @@ static void stbrp_pack_rects(stbrp_context* con, stbrp_rect* rects, int num_rect
 
 int PackBegin(pack_context* spc, char* pixels, int pw, int ph, int stride_in_bytes, int padding, void* alloc_context)
 {
-   stbrp_context* context = (stbrp_context *) STBTT_malloc(sizeof(*context)            ,alloc_context);
+   rect_pack::Context* context = (rect_pack::Context*) STBTT_malloc(sizeof(*context)            ,alloc_context);
    int            num_nodes = pw - padding;
-   stbrp_node    *nodes   = (stbrp_node    *) STBTT_malloc(sizeof(*nodes  ) * num_nodes,alloc_context);
+   rect_pack::Node    *nodes   = (rect_pack::Node    *) STBTT_malloc(sizeof(*nodes  ) * num_nodes,alloc_context);
 
    if (context == null || nodes == null) {
       if (context != null) STBTT_free(context, alloc_context);
@@ -3941,7 +3932,7 @@ int PackBegin(pack_context* spc, char* pixels, int pw, int ph, int stride_in_byt
    spc.v_oversample = 1;
    spc.skip_missing = 0;
 
-   stbrp_init_target(context, pw-padding, ph-padding, nodes, num_nodes);
+   rect_pack::init_target(context, pw-padding, ph-padding, nodes, num_nodes);
 
    if (pixels)
       STBTT_memset(pixels, 0, pw*ph); // background of 0 around pixels
@@ -4108,7 +4099,7 @@ static float _oversample_shift(int oversample)
 }
 
 // rects array must be big enough to accommodate all characters in the given ranges
-int PackFontRangesGatherRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, stbrp_rect* rects)
+int PackFontRangesGatherRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, rect_pack::Rect* rects)
 {
    int k = 0;
    int missing_glyph_added = 0;
@@ -4130,8 +4121,8 @@ int PackFontRangesGatherRects(pack_context* spc, const fontinfo* info, pack_rang
                                             scale * spc.v_oversample,
                                             0,0,
                                             &x0,&y0,&x1,&y1);
-            rects[k].w = (stbrp_coord) (x1-x0 + spc.padding + spc.h_oversample-1);
-            rects[k].h = (stbrp_coord) (y1-y0 + spc.padding + spc.v_oversample-1);
+            rects[k].w = (rect_pack::Coord) (x1-x0 + spc.padding + spc.h_oversample-1);
+            rects[k].h = (rect_pack::Coord) (y1-y0 + spc.padding + spc.v_oversample-1);
             if (glyph == 0)
                missing_glyph_added = 1;
          }
@@ -4166,7 +4157,7 @@ void MakeGlyphBitmapSubpixelPrefilter(const fontinfo* info, char* output, int ou
 }
 
 // rects array must be big enough to accommodate all characters in the given ranges
-int PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, stbrp_rect* rects)
+int PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_range* ranges, int num_ranges, rect_pack::Rect* rects)
 {
    int k, missing_glyph = -1, return_value = 1;
 
@@ -4186,13 +4177,13 @@ int PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_
       sub_x = _oversample_shift(spc.h_oversample);
       sub_y = _oversample_shift(spc.v_oversample);
       for (int j = 0; j < ranges[i].num_chars; ++j) {
-         stbrp_rect* r = &rects[k];
+         rect_pack::Rect* r = &rects[k];
          if (r.was_packed && r.w != 0 && r.h != 0) {
             packedchar* bc = &ranges[i].chardata_for_range[j];
             int advance, lsb, x0,y0,x1,y1;
             int codepoint = ranges[i].array_of_unicode_codepoints == null ? ranges[i].first_unicode_codepoint_in_range + j : ranges[i].array_of_unicode_codepoints[j];
             int glyph = FindGlyphIndex(info, codepoint);
-            stbrp_coord pad = (stbrp_coord) spc.padding;
+            rect_pack::Coord pad = (rect_pack::Coord) spc.padding;
 
             // pad on left and top
             r.x += pad;
@@ -4255,17 +4246,17 @@ int PackFontRangesRenderIntoRects(pack_context* spc, const fontinfo* info, pack_
    return return_value;
 }
 
-void PackFontRangesPackRects(pack_context* spc, stbrp_rect* rects, int num_rects)
+void PackFontRangesPackRects(pack_context* spc, rect_pack::Rect* rects, int num_rects)
 {
-   stbrp_pack_rects((stbrp_context *) spc.pack_info, rects, num_rects);
+   rect_pack::pack_rects((rect_pack::Context *) spc.pack_info, rects, num_rects);
 }
 
 int PackFontRanges(pack_context* spc, const char* fontdata, int font_index, pack_range* ranges, int num_ranges)
 {
    fontinfo info;
    int i,j,n, return_value = 1;
-   //stbrp_context* context = (stbrp_context *) spc.pack_info;
-   stbrp_rect    *rects;
+   //rect_pack::Context* context = (rect_pack::Context *) spc.pack_info;
+   rect_pack::Rect    *rects;
 
    // flag all characters as NOT packed
    for (i=0; i < num_ranges; ++i)
@@ -4279,7 +4270,7 @@ int PackFontRanges(pack_context* spc, const char* fontdata, int font_index, pack
    for (i=0; i < num_ranges; ++i)
       n += ranges[i].num_chars;
 
-   rects = (stbrp_rect *) STBTT_malloc(sizeof(*rects) * n, spc.user_allocator_context);
+   rects = (rect_pack::Rect *) STBTT_malloc(sizeof(*rects) * n, spc.user_allocator_context);
    if (rects == null)
       return 0;
 
