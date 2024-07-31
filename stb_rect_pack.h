@@ -274,7 +274,7 @@ fn int _skyline_find_min_y(Context* c @unused, Node* first, int x0, int width, i
       node = node.next;
    }
 
-   *pwaste = waste_area;
+   *outwaste = waste_area;
    return min_y;
 }
 
