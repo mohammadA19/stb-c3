@@ -1245,20 +1245,18 @@ static _buf _cff_index_get(_buf b, int i)
 // on platforms that don't allow misaligned reads, if we want to allow
 // truetype fonts that aren't padded to alignment, define ALLOW_UNALIGNED_TRUETYPE
 
-#define ttBYTE(p)     (* (char *) (p))
-#define ttCHAR(p)     (* (ichar *) (p))
-#define ttFixed(p)    ttLONG(p)
-
-static ushort ttUSHORT(char* p) { return p[0]*256 + p[1]; }
-static short ttSHORT(char* p)   { return p[0]*256 + p[1]; }
-static uint ttULONG(char* p)  { return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3]; }
-static int ttLONG(char* p)    { return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3]; }
-
-// TODO : make these functions private
+// #define ttBYTE(p)     (* (char *) (p))
+// #define ttCHAR(p)     (* (ichar *) (p))
+// #define ttFixed(p)    ttLONG(p)
+// 
+// static ushort ttUSHORT(char* p) { return p[0]*256 + p[1]; }
+// static short ttSHORT(char* p)   { return p[0]*256 + p[1]; }
+// static uint ttULONG(char* p)  { return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3]; }
+// static int ttLONG(char* p)    { return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3]; }
 
 fn char  peek_char (char* p) @private => *(p);
 fn ichar peek_ichar(char* p) @private => *(ichar*)p;
-fn int   peek_fixed(char* p) @private => be_long(p);
+fn int   peek_fixed(char* p) @private => peek_be_long(p);
 
 fn ushort peek_be_ushort(char* p) @private => p[0]*265 + p[1];
 fn short  peek_be_short (char* p) @private => p[0]*265 + p[1];
@@ -1287,12 +1285,12 @@ static int _isfont(char* font)
 // @OPTIMIZE: binary search
 static uint _find_table(char* data, uint fontstart, const char* tag)
 {
-   int num_tables = ttUSHORT(data+fontstart+4);
+   int num_tables = peek_be_ushort(data+fontstart+4);
    uint tabledir = fontstart + 12;
    for (int i = 0; i < num_tables; ++i) {
       uint loc = tabledir + 16*i;
       if (tag(data+loc+0, tag))
-         return ttULONG(data+loc+8);
+         return peek_be_ulong(data+loc+8);
    }
    return 0;
 }
@@ -1306,11 +1304,11 @@ static int GetFontOffsetForIndex_internal(char* font_collection, int index)
    // check if it's a TTC
    if (tag(font_collection, "ttcf")) {
       // version 1?
-      if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x00020000) {
-         int n = ttLONG(font_collection+8);
+      if (peek_be_ulong(font_collection+4) == 0x00010000 || peek_be_ulong(font_collection+4) == 0x00020000) {
+         int n = peek_be_long(font_collection+8);
          if (index >= n)
             return -1;
-         return ttULONG(font_collection+12+index*4);
+         return peek_be_ulong(font_collection+12+index*4);
       }
    }
    return -1;
@@ -1325,8 +1323,8 @@ static int GetNumberOfFonts_internal(char* font_collection)
    // check if it's a TTC
    if (tag(font_collection, "ttcf")) {
       // version 1?
-      if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x00020000) {
-         return ttLONG(font_collection+8);
+      if (peek_be_ulong(font_collection+4) == 0x00010000 || peek_be_ulong(font_collection+4) == 0x00020000) {
+         return peek_be_long(font_collection+8);
       }
    }
    return 0;
@@ -1352,7 +1350,7 @@ static int _get_svg(fontinfo* info)
    if (info.svg < 0) {
       t = _find_table(info.data, info.fontstart, "SVG ");
       if (t) {
-         uint offset = ttULONG(info.data + t + 2);
+         uint offset = peek_be_ulong(info.data + t + 2);
          info.svg = t + offset;
       } else {
          info.svg = 0;
@@ -1436,7 +1434,7 @@ static int InitFont_internal(fontinfo* info, char* data, int fontstart)
 
    t = _find_table(data, fontstart, "maxp");
    if (t)
-      info.numGlyphs = ttUSHORT(data+t+4);
+      info.numGlyphs = peek_be_ushort(data+t+4);
    else
       info.numGlyphs = 0xffff;
 
@@ -1445,32 +1443,32 @@ static int InitFont_internal(fontinfo* info, char* data, int fontstart)
    // find a cmap encoding table we understand* now* to avoid searching
    // later. (todo: could make this installable)
    // the same regardless of glyph.
-   numTables = ttUSHORT(data + cmap + 2);
+   numTables = peek_be_ushort(data + cmap + 2);
    info.index_map = 0;
    for (int i = 0; i < numTables; ++i) {
       uint encoding_record = cmap + 4 + 8 * i;
       // find an encoding we understand:
-      switch(ttUSHORT(data+encoding_record)) {
+      switch(peek_be_ushort(data+encoding_record)) {
          case PLATFORM_ID_MICROSOFT:
-            switch (ttUSHORT(data+encoding_record+2)) {
+            switch (peek_be_ushort(data+encoding_record+2)) {
                case MS_EID_UNICODE_BMP:
                case MS_EID_UNICODE_FULL:
                   // MS/Unicode
-                  info.index_map = cmap + ttULONG(data+encoding_record+4);
+                  info.index_map = cmap + peek_be_ulong(data+encoding_record+4);
                   break;
             }
             break;
         case PLATFORM_ID_UNICODE:
             // Mac/iOS has these
             // all the encodingIDs are unicode, so we don't bother to check it
-            info.index_map = cmap + ttULONG(data+encoding_record+4);
+            info.index_map = cmap + peek_be_ulong(data+encoding_record+4);
             break;
       }
    }
    if (info.index_map == 0)
       return 0;
 
-   info.indexToLocFormat = ttUSHORT(data+info.head + 50);
+   info.indexToLocFormat = peek_be_ushort(data+info.head + 50);
    return 1;
 }
 
@@ -1479,26 +1477,26 @@ int FindGlyphIndex(const fontinfo* info, int unicode_codepoint)
    char* data = info.data;
    uint index_map = info.index_map;
 
-   ushort format = ttUSHORT(data + index_map + 0);
+   ushort format = peek_be_ushort(data + index_map + 0);
    if (format == 0) { // apple byte encoding
-      int bytes = ttUSHORT(data + index_map + 2);
+      int bytes = peek_be_ushort(data + index_map + 2);
       if (unicode_codepoint < bytes-6)
-         return ttBYTE(data + index_map + 6 + unicode_codepoint);
+         return peek_char(data + index_map + 6 + unicode_codepoint);
       return 0;
    } else if (format == 6) {
-      uint first = ttUSHORT(data + index_map + 6);
-      uint count = ttUSHORT(data + index_map + 8);
+      uint first = peek_be_ushort(data + index_map + 6);
+      uint count = peek_be_ushort(data + index_map + 8);
       if ((uint) unicode_codepoint >= first && (uint) unicode_codepoint < first+count)
-         return ttUSHORT(data + index_map + 10 + (unicode_codepoint - first)*2);
+         return peek_be_ushort(data + index_map + 10 + (unicode_codepoint - first)*2);
       return 0;
    } else if (format == 2) {
       assert (0); // @TODO: high-byte mapping for japanese/chinese/korean
       return 0;
    } else if (format == 4) { // standard mapping for windows fonts: binary search collection of ranges
-      ushort segcount = ttUSHORT(data+index_map+6) >> 1;
-      ushort searchRange = ttUSHORT(data+index_map+8) >> 1;
-      ushort entrySelector = ttUSHORT(data+index_map+10);
-      ushort rangeShift = ttUSHORT(data+index_map+12) >> 1;
+      ushort segcount = peek_be_ushort(data+index_map+6) >> 1;
+      ushort searchRange = peek_be_ushort(data+index_map+8) >> 1;
+      ushort entrySelector = peek_be_ushort(data+index_map+10);
+      ushort rangeShift = peek_be_ushort(data+index_map+12) >> 1;
 
       // do a binary search of the segments
       uint endCount = index_map + 14;
@@ -1509,7 +1507,7 @@ int FindGlyphIndex(const fontinfo* info, int unicode_codepoint)
 
       // they lie from endCount .. endCount + segCount
       // but searchRange is the nearest power of two, so...
-      if (unicode_codepoint >= ttUSHORT(data + search + rangeShift*2))
+      if (unicode_codepoint >= peek_be_ushort(data + search + rangeShift*2))
          search += rangeShift*2;
 
       // now decrement to bias correctly to find smallest
@@ -1517,7 +1515,7 @@ int FindGlyphIndex(const fontinfo* info, int unicode_codepoint)
       while (entrySelector) {
          ushort end;
          searchRange >>= 1;
-         end = ttUSHORT(data + search + searchRange*2);
+         end = peek_be_ushort(data + search + searchRange*2);
          if (unicode_codepoint > end)
             search += searchRange*2;
          --entrySelector;
@@ -1528,32 +1526,32 @@ int FindGlyphIndex(const fontinfo* info, int unicode_codepoint)
          ushort offset, start, last;
          ushort item = (ushort) ((search - endCount) >> 1);
 
-         start = ttUSHORT(data + index_map + 14 + segcount*2 + 2 + 2*item);
-         last = ttUSHORT(data + endCount + 2*item);
+         start = peek_be_ushort(data + index_map + 14 + segcount*2 + 2 + 2*item);
+         last = peek_be_ushort(data + endCount + 2*item);
          if (unicode_codepoint < start || unicode_codepoint > last)
             return 0;
 
-         offset = ttUSHORT(data + index_map + 14 + segcount*6 + 2 + 2*item);
+         offset = peek_be_ushort(data + index_map + 14 + segcount*6 + 2 + 2*item);
          if (offset == 0)
-            return (ushort) (unicode_codepoint + ttSHORT(data + index_map + 14 + segcount*4 + 2 + 2*item));
+            return (ushort) (unicode_codepoint + peek_be_short(data + index_map + 14 + segcount*4 + 2 + 2*item));
 
-         return ttUSHORT(data + offset + (unicode_codepoint-start)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
+         return peek_be_ushort(data + offset + (unicode_codepoint-start)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
       }
    } else if (format == 12 || format == 13) {
-      uint ngroups = ttULONG(data+index_map+12);
+      uint ngroups = peek_be_ulong(data+index_map+12);
       int low,high;
       low = 0; high = (int)ngroups;
       // Binary search the right group.
       while (low < high) {
          int mid = low + ((high-low) >> 1); // rounds down, so low <= mid < high
-         uint start_char = ttULONG(data+index_map+16+mid*12);
-         uint end_char = ttULONG(data+index_map+16+mid*12+4);
+         uint start_char = peek_be_ulong(data+index_map+16+mid*12);
+         uint end_char = peek_be_ulong(data+index_map+16+mid*12+4);
          if ((uint) unicode_codepoint < start_char)
             high = mid;
          else if ((uint) unicode_codepoint > end_char)
             low = mid+1;
          else {
-            uint start_glyph = ttULONG(data+index_map+16+mid*12+8);
+            uint start_glyph = peek_be_ulong(data+index_map+16+mid*12+8);
             if (format == 12)
                return start_glyph + unicode_codepoint-start_char;
             else // format == 13
@@ -1591,11 +1589,11 @@ static int _GetGlyfOffset(const fontinfo* info, int glyph_index)
    if (info.indexToLocFormat >= 2)    return -1; // unknown index.glyph map format
 
    if (info.indexToLocFormat == 0) {
-      g1 = info.glyf + ttUSHORT(info.data + info.loca + glyph_index * 2) * 2;
-      g2 = info.glyf + ttUSHORT(info.data + info.loca + glyph_index * 2 + 2) * 2;
+      g1 = info.glyf + peek_be_ushort(info.data + info.loca + glyph_index * 2) * 2;
+      g2 = info.glyf + peek_be_ushort(info.data + info.loca + glyph_index * 2 + 2) * 2;
    } else {
-      g1 = info.glyf + ttULONG (info.data + info.loca + glyph_index * 4);
-      g2 = info.glyf + ttULONG (info.data + info.loca + glyph_index * 4 + 4);
+      g1 = info.glyf + peek_be_ulong (info.data + info.loca + glyph_index * 4);
+      g2 = info.glyf + peek_be_ulong (info.data + info.loca + glyph_index * 4 + 4);
    }
 
    return g1==g2 ? -1 : g1; // if length is 0, return -1
@@ -1611,10 +1609,10 @@ int GetGlyphBox(const fontinfo* info, int glyph_index, int* x0, int* y0, int* x1
       int g = _GetGlyfOffset(info, glyph_index);
       if (g < 0) return 0;
 
-      if (x0) *x0 = ttSHORT(info.data + g + 2);
-      if (y0) *y0 = ttSHORT(info.data + g + 4);
-      if (x1) *x1 = ttSHORT(info.data + g + 6);
-      if (y1) *y1 = ttSHORT(info.data + g + 8);
+      if (x0) *x0 = peek_be_short(info.data + g + 2);
+      if (y0) *y0 = peek_be_short(info.data + g + 4);
+      if (x1) *x1 = peek_be_short(info.data + g + 6);
+      if (y1) *y1 = peek_be_short(info.data + g + 8);
    }
    return 1;
 }
@@ -1632,7 +1630,7 @@ int IsGlyphEmpty(const fontinfo* info, int glyph_index)
       return _GetGlyphInfoT2(info, glyph_index, null, null, null, null) == 0;
    g = _GetGlyfOffset(info, glyph_index);
    if (g < 0) return 1;
-   numberOfContours = ttSHORT(info.data + g);
+   numberOfContours = peek_be_short(info.data + g);
    return numberOfContours == 0;
 }
 
@@ -1665,7 +1663,7 @@ static int _GetGlyphShapeTT(const fontinfo* info, int glyph_index, vertex **pver
 
    if (g < 0) return 0;
 
-   numberOfContours = ttSHORT(data + g);
+   numberOfContours = peek_be_short(data + g);
 
    if (numberOfContours > 0) {
       char flags=0,flagcount;
@@ -1673,10 +1671,10 @@ static int _GetGlyphShapeTT(const fontinfo* info, int glyph_index, vertex **pver
       int x,y,cx,cy,sx,sy, scx,scy;
       char* points;
       endPtsOfContours = (data + g + 10);
-      ins = ttUSHORT(data + g + 10 + numberOfContours * 2);
+      ins = peek_be_ushort(data + g + 10 + numberOfContours * 2);
       points = data + g + 10 + numberOfContours * 2 + 2 + ins;
 
-      n = 1+ttUSHORT(endPtsOfContours + numberOfContours*2-2);
+      n = 1+peek_be_ushort(endPtsOfContours + numberOfContours*2-2);
 
       m = n + 2*numberOfContours;  // a loose bound on how many vertices we might need
       vertices = (vertex *) STBTT_malloc(m * sizeof(vertices[0]), info.userdata);
@@ -1771,7 +1769,7 @@ static int _GetGlyphShapeTT(const fontinfo* info, int glyph_index, vertex **pver
             }
             setvertex(&vertices[num_vertices++], STBTT_vmove,sx,sy,0,0);
             was_off = 0;
-            next_move = 1 + ttUSHORT(endPtsOfContours+j*2);
+            next_move = 1 + peek_be_ushort(endPtsOfContours+j*2);
             ++j;
          } else {
             if (!(flags & 1)) { // if it's a curve
@@ -1802,16 +1800,16 @@ static int _GetGlyphShapeTT(const fontinfo* info, int glyph_index, vertex **pver
          vertex* comp_verts = 0, *tmp = 0;
          float mtx[6] = {1,0,0,1,0,0}, m, n;
 
-         flags = ttSHORT(comp); comp+=2;
-         gidx = ttSHORT(comp); comp+=2;
+         flags = peek_be_short(comp); comp+=2;
+         gidx = peek_be_short(comp); comp+=2;
 
          if (flags & 2) { // XY values
             if (flags & 1) { // shorts
-               mtx[4] = ttSHORT(comp); comp+=2;
-               mtx[5] = ttSHORT(comp); comp+=2;
+               mtx[4] = peek_be_short(comp); comp+=2;
+               mtx[5] = peek_be_short(comp); comp+=2;
             } else {
-               mtx[4] = ttCHAR(comp); comp+=1;
-               mtx[5] = ttCHAR(comp); comp+=1;
+               mtx[4] = peek_ichar(comp); comp+=1;
+               mtx[5] = peek_ichar(comp); comp+=1;
             }
          }
          else {
@@ -1819,17 +1817,17 @@ static int _GetGlyphShapeTT(const fontinfo* info, int glyph_index, vertex **pver
             assert (0);
          }
          if (flags & (1<<3)) { // WE_HAVE_A_SCALE
-            mtx[0] = mtx[3] = ttSHORT(comp)/16384.0f; comp+=2;
+            mtx[0] = mtx[3] = peek_be_short(comp)/16384.0f; comp+=2;
             mtx[1] = mtx[2] = 0;
          } else if (flags & (1<<6)) { // WE_HAVE_AN_X_AND_YSCALE
-            mtx[0] = ttSHORT(comp)/16384.0f; comp+=2;
+            mtx[0] = peek_be_short(comp)/16384.0f; comp+=2;
             mtx[1] = mtx[2] = 0;
-            mtx[3] = ttSHORT(comp)/16384.0f; comp+=2;
+            mtx[3] = peek_be_short(comp)/16384.0f; comp+=2;
          } else if (flags & (1<<7)) { // WE_HAVE_A_TWO_BY_TWO
-            mtx[0] = ttSHORT(comp)/16384.0f; comp+=2;
-            mtx[1] = ttSHORT(comp)/16384.0f; comp+=2;
-            mtx[2] = ttSHORT(comp)/16384.0f; comp+=2;
-            mtx[3] = ttSHORT(comp)/16384.0f; comp+=2;
+            mtx[0] = peek_be_short(comp)/16384.0f; comp+=2;
+            mtx[1] = peek_be_short(comp)/16384.0f; comp+=2;
+            mtx[2] = peek_be_short(comp)/16384.0f; comp+=2;
+            mtx[3] = peek_be_short(comp)/16384.0f; comp+=2;
          }
 
          // Find transformation scales.
@@ -2285,13 +2283,13 @@ int GetGlyphShape(const fontinfo* info, int glyph_index, vertex **pvertices)
 
 void GetGlyphHMetrics(const fontinfo* info, int glyph_index, int* advanceWidth, int* leftSideBearing)
 {
-   ushort numOfLongHorMetrics = ttUSHORT(info.data+info.hhea + 34);
+   ushort numOfLongHorMetrics = peek_be_ushort(info.data+info.hhea + 34);
    if (glyph_index < numOfLongHorMetrics) {
-      if (advanceWidth)     *advanceWidth    = ttSHORT(info.data + info.hmtx + 4*glyph_index);
-      if (leftSideBearing)  *leftSideBearing = ttSHORT(info.data + info.hmtx + 4*glyph_index + 2);
+      if (advanceWidth)     *advanceWidth    = peek_be_short(info.data + info.hmtx + 4*glyph_index);
+      if (leftSideBearing)  *leftSideBearing = peek_be_short(info.data + info.hmtx + 4*glyph_index + 2);
    } else {
-      if (advanceWidth)     *advanceWidth    = ttSHORT(info.data + info.hmtx + 4*(numOfLongHorMetrics-1));
-      if (leftSideBearing)  *leftSideBearing = ttSHORT(info.data + info.hmtx + 4*numOfLongHorMetrics + 2*(glyph_index - numOfLongHorMetrics));
+      if (advanceWidth)     *advanceWidth    = peek_be_short(info.data + info.hmtx + 4*(numOfLongHorMetrics-1));
+      if (leftSideBearing)  *leftSideBearing = peek_be_short(info.data + info.hmtx + 4*numOfLongHorMetrics + 2*(glyph_index - numOfLongHorMetrics));
    }
 }
 
@@ -2302,12 +2300,12 @@ int  GetKerningTableLength(const fontinfo* info)
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info.kern)
       return 0;
-   if (ttUSHORT(data+2) < 1) // number of tables, need at least 1
+   if (peek_be_ushort(data+2) < 1) // number of tables, need at least 1
       return 0;
-   if (ttUSHORT(data+8) != 1) // horizontal flag must be set in format
+   if (peek_be_ushort(data+8) != 1) // horizontal flag must be set in format
       return 0;
 
-   return ttUSHORT(data+10);
+   return peek_be_ushort(data+10);
 }
 
 int GetKerningTable(const fontinfo* info, kerningentry* table, int table_length)
@@ -2318,20 +2316,20 @@ int GetKerningTable(const fontinfo* info, kerningentry* table, int table_length)
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info.kern)
       return 0;
-   if (ttUSHORT(data+2) < 1) // number of tables, need at least 1
+   if (peek_be_ushort(data+2) < 1) // number of tables, need at least 1
       return 0;
-   if (ttUSHORT(data+8) != 1) // horizontal flag must be set in format
+   if (peek_be_ushort(data+8) != 1) // horizontal flag must be set in format
       return 0;
 
-   length = ttUSHORT(data+10);
+   length = peek_be_ushort(data+10);
    if (table_length < length)
       length = table_length;
 
    for (int k = 0; k < length; k++)
    {
-      table[k].glyph1 = ttUSHORT(data+18+(k*6));
-      table[k].glyph2 = ttUSHORT(data+20+(k*6));
-      table[k].advance = ttSHORT(data+22+(k*6));
+      table[k].glyph1 = peek_be_ushort(data+18+(k*6));
+      table[k].glyph2 = peek_be_ushort(data+20+(k*6));
+      table[k].advance = peek_be_short(data+22+(k*6));
    }
 
    return length;
@@ -2346,33 +2344,33 @@ static int _GetGlyphKernInfoAdvance(const fontinfo* info, int glyph1, int glyph2
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info.kern)
       return 0;
-   if (ttUSHORT(data+2) < 1) // number of tables, need at least 1
+   if (peek_be_ushort(data+2) < 1) // number of tables, need at least 1
       return 0;
-   if (ttUSHORT(data+8) != 1) // horizontal flag must be set in format
+   if (peek_be_ushort(data+8) != 1) // horizontal flag must be set in format
       return 0;
 
    l = 0;
-   r = ttUSHORT(data+10) - 1;
+   r = peek_be_ushort(data+10) - 1;
    needle = glyph1 << 16 | glyph2;
    while (l <= r) {
       m = (l + r) >> 1;
-      straw = ttULONG(data+18+(m*6)); // note: unaligned read
+      straw = peek_be_ulong(data+18+(m*6)); // note: unaligned read
       if (needle < straw)
          r = m - 1;
       else if (needle > straw)
          l = m + 1;
       else
-         return ttSHORT(data+22+(m*6));
+         return peek_be_short(data+22+(m*6));
    }
    return 0;
 }
 
 static int _GetCoverageIndex(char* coverageTable, int glyph)
 {
-   ushort coverageFormat = ttUSHORT(coverageTable);
+   ushort coverageFormat = peek_be_ushort(coverageTable);
    switch (coverageFormat) {
       case 1: {
-         ushort glyphCount = ttUSHORT(coverageTable + 2);
+         ushort glyphCount = peek_be_ushort(coverageTable + 2);
 
          // Binary search.
          int l=0, r=glyphCount-1, m;
@@ -2381,7 +2379,7 @@ static int _GetCoverageIndex(char* coverageTable, int glyph)
             char* glyphArray = coverageTable + 4;
             ushort glyphID;
             m = (l + r) >> 1;
-            glyphID = ttUSHORT(glyphArray + 2 * m);
+            glyphID = peek_be_ushort(glyphArray + 2 * m);
             straw = glyphID;
             if (needle < straw)
                r = m - 1;
@@ -2395,7 +2393,7 @@ static int _GetCoverageIndex(char* coverageTable, int glyph)
       }
 
       case 2: {
-         ushort rangeCount = ttUSHORT(coverageTable + 2);
+         ushort rangeCount = peek_be_ushort(coverageTable + 2);
          char* rangeArray = coverageTable + 4;
 
          // Binary search.
@@ -2405,14 +2403,14 @@ static int _GetCoverageIndex(char* coverageTable, int glyph)
             char* rangeRecord;
             m = (l + r) >> 1;
             rangeRecord = rangeArray + 6 * m;
-            strawStart = ttUSHORT(rangeRecord);
-            strawEnd = ttUSHORT(rangeRecord + 2);
+            strawStart = peek_be_ushort(rangeRecord);
+            strawEnd = peek_be_ushort(rangeRecord + 2);
             if (needle < strawStart)
                r = m - 1;
             else if (needle > strawEnd)
                l = m + 1;
             else {
-               ushort startCoverageIndex = ttUSHORT(rangeRecord + 4);
+               ushort startCoverageIndex = peek_be_ushort(rangeRecord + 4);
                return startCoverageIndex + glyph - strawStart;
             }
          }
@@ -2427,21 +2425,21 @@ static int _GetCoverageIndex(char* coverageTable, int glyph)
 
 static int  _GetGlyphClass(char* classDefTable, int glyph)
 {
-   ushort classDefFormat = ttUSHORT(classDefTable);
+   ushort classDefFormat = peek_be_ushort(classDefTable);
    switch (classDefFormat)
    {
       case 1: {
-         ushort startGlyphID = ttUSHORT(classDefTable + 2);
-         ushort glyphCount = ttUSHORT(classDefTable + 4);
+         ushort startGlyphID = peek_be_ushort(classDefTable + 2);
+         ushort glyphCount = peek_be_ushort(classDefTable + 4);
          char* classDef1ValueArray = classDefTable + 6;
 
          if (glyph >= startGlyphID && glyph < startGlyphID + glyphCount)
-            return (int)ttUSHORT(classDef1ValueArray + 2 * (glyph - startGlyphID));
+            return (int)peek_be_ushort(classDef1ValueArray + 2 * (glyph - startGlyphID));
          break;
       }
 
       case 2: {
-         ushort classRangeCount = ttUSHORT(classDefTable + 2);
+         ushort classRangeCount = peek_be_ushort(classDefTable + 2);
          char* classRangeRecords = classDefTable + 4;
 
          // Binary search.
@@ -2451,14 +2449,14 @@ static int  _GetGlyphClass(char* classDefTable, int glyph)
             char* classRangeRecord;
             m = (l + r) >> 1;
             classRangeRecord = classRangeRecords + 6 * m;
-            strawStart = ttUSHORT(classRangeRecord);
-            strawEnd = ttUSHORT(classRangeRecord + 2);
+            strawStart = peek_be_ushort(classRangeRecord);
+            strawEnd = peek_be_ushort(classRangeRecord + 2);
             if (needle < strawStart)
                r = m - 1;
             else if (needle > strawEnd)
                l = m + 1;
             else
-               return (int)ttUSHORT(classRangeRecord + 4);
+               return (int)peek_be_ushort(classRangeRecord + 4);
          }
          break;
       }
@@ -2485,28 +2483,28 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
 
    data = info.data + info.gpos;
 
-   if (ttUSHORT(data+0) != 1) return 0; // Major version 1
-   if (ttUSHORT(data+2) != 0) return 0; // Minor version 0
+   if (peek_be_ushort(data+0) != 1) return 0; // Major version 1
+   if (peek_be_ushort(data+2) != 0) return 0; // Minor version 0
 
-   lookupListOffset = ttUSHORT(data+8);
+   lookupListOffset = peek_be_ushort(data+8);
    lookupList = data + lookupListOffset;
-   lookupCount = ttUSHORT(lookupList);
+   lookupCount = peek_be_ushort(lookupList);
 
    for (int i = 0; i<lookupCount; ++i) {
-      ushort lookupOffset = ttUSHORT(lookupList + 2 + 2 * i);
+      ushort lookupOffset = peek_be_ushort(lookupList + 2 + 2 * i);
       char* lookupTable = lookupList + lookupOffset;
 
-      ushort lookupType = ttUSHORT(lookupTable);
-      ushort subTableCount = ttUSHORT(lookupTable + 4);
+      ushort lookupType = peek_be_ushort(lookupTable);
+      ushort subTableCount = peek_be_ushort(lookupTable + 4);
       char* subTableOffsets = lookupTable + 6;
       if (lookupType != 2) // Pair Adjustment Positioning Subtable
          continue;
 
       for (int sti = 0; sti<subTableCount; sti++) {
-         ushort subtableOffset = ttUSHORT(subTableOffsets + 2 * sti);
+         ushort subtableOffset = peek_be_ushort(subTableOffsets + 2 * sti);
          char* table = lookupTable + subtableOffset;
-         ushort posFormat = ttUSHORT(table);
-         ushort coverageOffset = ttUSHORT(table + 2);
+         ushort posFormat = peek_be_ushort(table);
+         ushort coverageOffset = peek_be_ushort(table + 2);
          int coverageIndex = _GetCoverageIndex(table + coverageOffset, glyph1);
          if (coverageIndex == -1) continue;
 
@@ -2514,14 +2512,14 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
             case 1: {
                int l, r, m;
                int straw, needle;
-               ushort valueFormat1 = ttUSHORT(table + 4);
-               ushort valueFormat2 = ttUSHORT(table + 6);
+               ushort valueFormat1 = peek_be_ushort(table + 4);
+               ushort valueFormat2 = peek_be_ushort(table + 6);
                if (valueFormat1 == 4 && valueFormat2 == 0) { // Support more formats?
                   int valueRecordPairSizeInBytes = 2;
-                  ushort pairSetCount = ttUSHORT(table + 8);
-                  ushort pairPosOffset = ttUSHORT(table + 10 + 2 * coverageIndex);
+                  ushort pairSetCount = peek_be_ushort(table + 8);
+                  ushort pairPosOffset = peek_be_ushort(table + 10 + 2 * coverageIndex);
                   char* pairValueTable = table + pairPosOffset;
-                  ushort pairValueCount = ttUSHORT(pairValueTable);
+                  ushort pairValueCount = peek_be_ushort(pairValueTable);
                   char* pairValueArray = pairValueTable + 2;
 
                   if (coverageIndex >= pairSetCount) return 0;
@@ -2536,14 +2534,14 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
                      char* pairValue;
                      m = (l + r) >> 1;
                      pairValue = pairValueArray + (2 + valueRecordPairSizeInBytes) * m;
-                     secondGlyph = ttUSHORT(pairValue);
+                     secondGlyph = peek_be_ushort(pairValue);
                      straw = secondGlyph;
                      if (needle < straw)
                         r = m - 1;
                      else if (needle > straw)
                         l = m + 1;
                      else {
-                        short xAdvance = ttSHORT(pairValue + 2);
+                        short xAdvance = peek_be_short(pairValue + 2);
                         return xAdvance;
                      }
                   }
@@ -2553,16 +2551,16 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
             }
 
             case 2: {
-               ushort valueFormat1 = ttUSHORT(table + 4);
-               ushort valueFormat2 = ttUSHORT(table + 6);
+               ushort valueFormat1 = peek_be_ushort(table + 4);
+               ushort valueFormat2 = peek_be_ushort(table + 6);
                if (valueFormat1 == 4 && valueFormat2 == 0) { // Support more formats?
-                  ushort classDef1Offset = ttUSHORT(table + 8);
-                  ushort classDef2Offset = ttUSHORT(table + 10);
+                  ushort classDef1Offset = peek_be_ushort(table + 8);
+                  ushort classDef2Offset = peek_be_ushort(table + 10);
                   int glyph1class = _GetGlyphClass(table + classDef1Offset, glyph1);
                   int glyph2class = _GetGlyphClass(table + classDef2Offset, glyph2);
 
-                  ushort class1Count = ttUSHORT(table + 12);
-                  ushort class2Count = ttUSHORT(table + 14);
+                  ushort class1Count = peek_be_ushort(table + 12);
+                  ushort class2Count = peek_be_ushort(table + 14);
                   char* class1Records, *class2Records;
                   short xAdvance;
 
@@ -2571,7 +2569,7 @@ static int _GetGlyphGPOSInfoAdvance(const fontinfo* info, int glyph1, int glyph2
 
                   class1Records = table + 16;
                   class2Records = class1Records + 2 * (glyph1class * class2Count);
-                  xAdvance = ttSHORT(class2Records + 2 * glyph2class);
+                  xAdvance = peek_be_short(class2Records + 2 * glyph2class);
                   return xAdvance;
                } else
                   return 0;
@@ -2613,9 +2611,9 @@ void GetCodepointHMetrics(const fontinfo* info, int codepoint, int* advanceWidth
 
 void GetFontVMetrics(const fontinfo* info, int* ascent, int* descent, int* lineGap)
 {
-   if (ascent ) *ascent  = ttSHORT(info.data+info.hhea + 4);
-   if (descent) *descent = ttSHORT(info.data+info.hhea + 6);
-   if (lineGap) *lineGap = ttSHORT(info.data+info.hhea + 8);
+   if (ascent ) *ascent  = peek_be_short(info.data+info.hhea + 4);
+   if (descent) *descent = peek_be_short(info.data+info.hhea + 6);
+   if (lineGap) *lineGap = peek_be_short(info.data+info.hhea + 8);
 }
 
 int  GetFontVMetricsOS2(const fontinfo* info, int* typoAscent, int* typoDescent, int* typoLineGap)
@@ -2623,29 +2621,29 @@ int  GetFontVMetricsOS2(const fontinfo* info, int* typoAscent, int* typoDescent,
    int tab = _find_table(info.data, info.fontstart, "OS/2");
    if (!tab)
       return 0;
-   if (typoAscent ) *typoAscent  = ttSHORT(info.data+tab + 68);
-   if (typoDescent) *typoDescent = ttSHORT(info.data+tab + 70);
-   if (typoLineGap) *typoLineGap = ttSHORT(info.data+tab + 72);
+   if (typoAscent ) *typoAscent  = peek_be_short(info.data+tab + 68);
+   if (typoDescent) *typoDescent = peek_be_short(info.data+tab + 70);
+   if (typoLineGap) *typoLineGap = peek_be_short(info.data+tab + 72);
    return 1;
 }
 
 void GetFontBoundingBox(const fontinfo* info, int* x0, int* y0, int* x1, int* y1)
 {
-   *x0 = ttSHORT(info.data + info.head + 36);
-   *y0 = ttSHORT(info.data + info.head + 38);
-   *x1 = ttSHORT(info.data + info.head + 40);
-   *y1 = ttSHORT(info.data + info.head + 42);
+   *x0 = peek_be_short(info.data + info.head + 36);
+   *y0 = peek_be_short(info.data + info.head + 38);
+   *x1 = peek_be_short(info.data + info.head + 40);
+   *y1 = peek_be_short(info.data + info.head + 42);
 }
 
 float ScaleForPixelHeight(const fontinfo* info, float height)
 {
-   int fheight = ttSHORT(info.data + info.hhea + 4) - ttSHORT(info.data + info.hhea + 6);
+   int fheight = peek_be_short(info.data + info.hhea + 4) - peek_be_short(info.data + info.hhea + 6);
    return (float) height / fheight;
 }
 
 float ScaleForMappingEmToPixels(const fontinfo* info, float pixels)
 {
-   int unitsPerEm = ttUSHORT(info.data + info.head + 18);
+   int unitsPerEm = peek_be_ushort(info.data + info.head + 18);
    return pixels / unitsPerEm;
 }
 
@@ -2659,12 +2657,12 @@ char* FindSVGDoc(const fontinfo* info, int gl)
    char* data = info.data;
    char* svg_doc_list = data + _get_svg((fontinfo *) info);
 
-   int numEntries = ttUSHORT(svg_doc_list);
+   int numEntries = peek_be_ushort(svg_doc_list);
    char* svg_docs = svg_doc_list + 2;
 
    for(int i = 0; i < numEntries; i++) {
       char* svg_doc = svg_docs + (12 * i);
-      if ((gl >= ttUSHORT(svg_doc)) && (gl <= ttUSHORT(svg_doc + 2)))
+      if ((gl >= peek_be_ushort(svg_doc)) && (gl <= peek_be_ushort(svg_doc + 2)))
          return svg_doc;
    }
    return 0;
@@ -2680,8 +2678,8 @@ int GetGlyphSVG(const fontinfo* info, int gl, const char **svg)
 
    svg_doc = FindSVGDoc(info, gl);
    if (svg_doc != null) {
-      *svg = (char *) data + info.svg + ttULONG(svg_doc + 4);
-      return ttULONG(svg_doc + 8);
+      *svg = (char *) data + info.svg + peek_be_ulong(svg_doc + 4);
+      return peek_be_ulong(svg_doc + 8);
    } else {
       return 0;
    }
@@ -4796,14 +4794,14 @@ const char* GetFontNameString(const fontinfo* font, int* length, int platformID,
    uint nm = _find_table(fc, offset, "name");
    if (!nm) return null;
 
-   count = ttUSHORT(fc+nm+2);
-   stringOffset = nm + ttUSHORT(fc+nm+4);
+   count = peek_be_ushort(fc+nm+2);
+   stringOffset = nm + peek_be_ushort(fc+nm+4);
    for (int i = 0; i < count; ++i) {
       uint loc = nm + 6 + 12 * i;
-      if (platformID == ttUSHORT(fc+loc+0) && encodingID == ttUSHORT(fc+loc+2)
-          && languageID == ttUSHORT(fc+loc+4) && nameID == ttUSHORT(fc+loc+6)) {
-         *length = ttUSHORT(fc+loc+8);
-         return (const char *) (fc+stringOffset+ttUSHORT(fc+loc+10));
+      if (platformID == peek_be_ushort(fc+loc+0) && encodingID == peek_be_ushort(fc+loc+2)
+          && languageID == peek_be_ushort(fc+loc+4) && nameID == peek_be_ushort(fc+loc+6)) {
+         *length = peek_be_ushort(fc+loc+8);
+         return (const char *) (fc+stringOffset+peek_be_ushort(fc+loc+10));
       }
    }
    return null;
@@ -4811,28 +4809,28 @@ const char* GetFontNameString(const fontinfo* font, int* length, int platformID,
 
 static int _matchpair(char* fc, uint nm, char* name, int nlen, int target_id, int next_id)
 {
-   int count = ttUSHORT(fc+nm+2);
-   int stringOffset = nm + ttUSHORT(fc+nm+4);
+   int count = peek_be_ushort(fc+nm+2);
+   int stringOffset = nm + peek_be_ushort(fc+nm+4);
 
    for (int i = 0; i < count; ++i) {
       uint loc = nm + 6 + 12 * i;
-      int id = ttUSHORT(fc+loc+6);
+      int id = peek_be_ushort(fc+loc+6);
       if (id == target_id) {
          // find the encoding
-         int platform = ttUSHORT(fc+loc+0), encoding = ttUSHORT(fc+loc+2), language = ttUSHORT(fc+loc+4);
+         int platform = peek_be_ushort(fc+loc+0), encoding = peek_be_ushort(fc+loc+2), language = peek_be_ushort(fc+loc+4);
 
          // is this a Unicode encoding?
          if (platform == 0 || (platform == 3 && encoding == 1) || (platform == 3 && encoding == 10)) {
-            int slen = ttUSHORT(fc+loc+8);
-            int off = ttUSHORT(fc+loc+10);
+            int slen = peek_be_ushort(fc+loc+8);
+            int off = peek_be_ushort(fc+loc+10);
 
             // check if there's a prefix match
             int matchlen = _CompareUTF8toUTF16_bigendian_prefix(name, nlen, fc+stringOffset+off,slen);
             if (matchlen >= 0) {
                // check for target_id+1 immediately following, with same encoding & language
-               if (i+1 < count && ttUSHORT(fc+loc+12+6) == next_id && ttUSHORT(fc+loc+12) == platform && ttUSHORT(fc+loc+12+2) == encoding && ttUSHORT(fc+loc+12+4) == language) {
-                  slen = ttUSHORT(fc+loc+12+8);
-                  off = ttUSHORT(fc+loc+12+10);
+               if (i+1 < count && peek_be_ushort(fc+loc+12+6) == next_id && peek_be_ushort(fc+loc+12) == platform && peek_be_ushort(fc+loc+12+2) == encoding && peek_be_ushort(fc+loc+12+4) == language) {
+                  slen = peek_be_ushort(fc+loc+12+8);
+                  off = peek_be_ushort(fc+loc+12+10);
                   if (slen == 0) {
                      if (matchlen == nlen)
                         return 1;
@@ -4864,7 +4862,7 @@ static int _matches(char* fc, uint offset, char* name, int flags)
    // check italics/bold/underline flags in macStyle...
    if (flags) {
       hd = _find_table(fc, offset, "head");
-      if ((ttUSHORT(fc+hd+44) & 7) != (flags & 7)) return 0;
+      if ((peek_be_ushort(fc+hd+44) & 7) != (flags & 7)) return 0;
    }
 
    nm = _find_table(fc, offset, "name");
