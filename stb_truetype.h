@@ -1268,31 +1268,44 @@ fn bool match_tag_chars(char* p, char c0, char c1, char c2, char c3) @private
 
 fn bool match_str_tag(char* p, char* tag) @private => match_tag_chars(p, tag[0], tag[1], tag[2], tag[3]);
 
+fn bool match_tag(char* p, int tag) => (*(int*)p) == tag;
+
 #define tag4(p,c0,c1,c2,c3) ((p)[0] == (c0) && (p)[1] == (c1) && (p)[2] == (c2) && (p)[3] == (c3))
 #define tag(p,str)           tag4(p,str[0],str[1],str[2],str[3])
 
 static int _isfont(char* font)
 {
    // check the version number
-   if (tag4(font, '1',0,0,0))  return 1; // TrueType 1
-   if (tag(font, "typ1"))   return 1; // TrueType with type 1 font -- we don't support this!
-   if (tag(font, "OTTO"))   return 1; // OpenType with CFF
-   if (tag4(font, 0,1,0,0)) return 1; // OpenType 1.0
-   if (tag(font, "true"))   return 1; // Apple specification for TrueType fonts
+   if (match_tag_chars(font, '1',0,0,0))  return 1; // TrueType 1
+   if (match_tag(font, 'typ1'))   return 1; // TrueType with type 1 font -- we don't support this!
+   if (match_tag(font, 'OTTO'))   return 1; // OpenType with CFF
+   if (match_tag_chars(font, 0,1,0,0)) return 1; // OpenType 1.0
+   if (match_tag(font, 'true'))   return 1; // Apple specification for TrueType fonts
    return 0;
 }
 
 // @OPTIMIZE: binary search
-static uint _find_table(char* data, uint fontstart, const char* tag)
+// static uint _find_table(char* data, uint fontstart, const char* tag)
+// {
+//    int num_tables = peek_be_ushort(data+fontstart+4);
+//    uint tabledir = fontstart + 12;
+//    for (int i = 0; i < num_tables; ++i) {
+//       uint loc = tabledir + 16*i;
+//       if (tag(data+loc+0, tag))
+//          return peek_be_ulong(data+loc+8);
+//    }
+//    return 0;
+// }
+
+fn uint _find_table(char* data, uint fontstart, int tag) @priavte
 {
-   int num_tables = peek_be_ushort(data+fontstart+4);
+   int num_tables = peek_be_ushort(data + fontstart + 4);
    uint tabledir = fontstart + 12;
    for (int i = 0; i < num_tables; ++i) {
-      uint loc = tabledir + 16*i;
-      if (tag(data+loc+0, tag))
+      uint loc = tabledir + 16 * i;
+      if (match_tag(data + loc, tag))
          return peek_be_ulong(data+loc+8);
    }
-   return 0;
 }
 
 static int GetFontOffsetForIndex_internal(char* font_collection, int index)
@@ -1302,7 +1315,7 @@ static int GetFontOffsetForIndex_internal(char* font_collection, int index)
       return index == 0 ? 0 : -1;
 
    // check if it's a TTC
-   if (tag(font_collection, "ttcf")) {
+   if (match_tag(font_collection, 'ttcf')) {
       // version 1?
       if (peek_be_ulong(font_collection+4) == 0x00010000 || peek_be_ulong(font_collection+4) == 0x00020000) {
          int n = peek_be_long(font_collection+8);
@@ -1321,7 +1334,7 @@ static int GetNumberOfFonts_internal(char* font_collection)
       return 1;
 
    // check if it's a TTC
-   if (tag(font_collection, "ttcf")) {
+   if (match_tag(font_collection, 'ttcf')) {
       // version 1?
       if (peek_be_ulong(font_collection+4) == 0x00010000 || peek_be_ulong(font_collection+4) == 0x00020000) {
          return peek_be_long(font_collection+8);
@@ -1348,7 +1361,7 @@ static int _get_svg(fontinfo* info)
 {
    uint t;
    if (info.svg < 0) {
-      t = _find_table(info.data, info.fontstart, "SVG ");
+      t = _find_table(info.data, info.fontstart, 'SVG ');
       if (t) {
          uint offset = peek_be_ulong(info.data + t + 2);
          info.svg = t + offset;
@@ -1368,14 +1381,14 @@ static int InitFont_internal(fontinfo* info, char* data, int fontstart)
    info.fontstart = fontstart;
    info.cff = _new_buf(null, 0);
 
-   cmap = _find_table(data, fontstart, "cmap");       // required
-   info.loca = _find_table(data, fontstart, "loca"); // required
-   info.head = _find_table(data, fontstart, "head"); // required
-   info.glyf = _find_table(data, fontstart, "glyf"); // required
-   info.hhea = _find_table(data, fontstart, "hhea"); // required
-   info.hmtx = _find_table(data, fontstart, "hmtx"); // required
-   info.kern = _find_table(data, fontstart, "kern"); // not required
-   info.gpos = _find_table(data, fontstart, "GPOS"); // not required
+   cmap = _find_table(data, fontstart, 'cmap');       // required
+   info.loca = _find_table(data, fontstart, 'loca'); // required
+   info.head = _find_table(data, fontstart, 'head'); // required
+   info.glyf = _find_table(data, fontstart, 'glyf'); // required
+   info.hhea = _find_table(data, fontstart, 'hhea'); // required
+   info.hmtx = _find_table(data, fontstart, 'hmtx'); // required
+   info.kern = _find_table(data, fontstart, 'kern'); // not required
+   info.gpos = _find_table(data, fontstart, 'GPOS'); // not required
 
    if (!cmap || !info.head || !info.hhea || !info.hmtx)
       return 0;
@@ -1388,7 +1401,7 @@ static int InitFont_internal(fontinfo* info, char* data, int fontstart)
       uint cstype = 2, charstrings = 0, fdarrayoff = 0, fdselectoff = 0;
       uint cff;
 
-      cff = _find_table(data, fontstart, "CFF ");
+      cff = _find_table(data, fontstart, 'CFF ');
       if (!cff) return 0;
 
       info.fontdicts = _new_buf(null, 0);
@@ -1432,7 +1445,7 @@ static int InitFont_internal(fontinfo* info, char* data, int fontstart)
       info.charstrings = _cff_get_index(&b);
    }
 
-   t = _find_table(data, fontstart, "maxp");
+   t = _find_table(data, fontstart, 'maxp');
    if (t)
       info.numGlyphs = peek_be_ushort(data+t+4);
    else
@@ -2618,7 +2631,7 @@ void GetFontVMetrics(const fontinfo* info, int* ascent, int* descent, int* lineG
 
 int  GetFontVMetricsOS2(const fontinfo* info, int* typoAscent, int* typoDescent, int* typoLineGap)
 {
-   int tab = _find_table(info.data, info.fontstart, "OS/2");
+   int tab = _find_table(info.data, info.fontstart, 'OS/2');
    if (!tab)
       return 0;
    if (typoAscent ) *typoAscent  = peek_be_short(info.data+tab + 68);
@@ -4791,7 +4804,7 @@ const char* GetFontNameString(const fontinfo* font, int* length, int platformID,
    int count,stringOffset;
    char* fc = font.data;
    uint offset = font.fontstart;
-   uint nm = _find_table(fc, offset, "name");
+   uint nm = _find_table(fc, offset, 'name');
    if (!nm) return null;
 
    count = peek_be_ushort(fc+nm+2);
@@ -4861,11 +4874,11 @@ static int _matches(char* fc, uint offset, char* name, int flags)
 
    // check italics/bold/underline flags in macStyle...
    if (flags) {
-      hd = _find_table(fc, offset, "head");
+      hd = _find_table(fc, offset, 'head');
       if ((peek_be_ushort(fc+hd+44) & 7) != (flags & 7)) return 0;
    }
 
-   nm = _find_table(fc, offset, "name");
+   nm = _find_table(fc, offset, 'name');
    if (!nm) return 0;
 
    if (flags) {
