@@ -1254,6 +1254,17 @@ static short ttSHORT(char* p)   { return p[0]*256 + p[1]; }
 static uint ttULONG(char* p)  { return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3]; }
 static int ttLONG(char* p)    { return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3]; }
 
+// TODO : make these functions private
+
+fn char  as_char (char* p) => *(p);
+fn ichar as_ichar(char* p) => *(ichar*)p;
+fn int   as_fixed(char* p) => be_long(p);
+
+fn ushort be_ushort(char* p) => p[0]*265 + p[1];
+fn short  be_short (char* p) => p[0]*265 + p[1];
+fn uint   be_ulong (char* p) => (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+fn int    be_long  (char* p) => (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+
 #define tag4(p,c0,c1,c2,c3) ((p)[0] == (c0) && (p)[1] == (c1) && (p)[2] == (c2) && (p)[3] == (c3))
 #define tag(p,str)           tag4(p,str[0],str[1],str[2],str[3])
 
